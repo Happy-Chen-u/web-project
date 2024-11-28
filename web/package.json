@@ -7,7 +7,7 @@
   "license": "",
   "author": "",
   "scripts": {
-    "start": "node server.js",
+    "start": "node web/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --config webpack.config.prod.js",
     "dev": "webpack serve --open --config webpack.config.dev.js"
