@@ -1,0 +1,2304 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大學周邊美食</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- 引入css -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css"/>
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css"/>
+
+</head>
+<body>
+<div class="university-info">
+  <!-- 顯示學校名稱 -->
+  <div class="header">
+    <h1 id="schoolName">大學名稱</h1> <!-- 預設名稱 -->
+  </div>
+  <!-- 顯示學校地址 -->
+  <div class="address">
+    <p id="schoolAddress">學校地址</p> <!-- 預設地址 -->
+  </div>
+</div>
+
+<!-- 其他內容區域 -->
+<div class="buttons">
+  <button onclick="scrollToSection('美食')">美食</button>
+  <button onclick="scrollToSection('飲品')">飲品</button>
+  <button onclick="scrollToSection('夜市')">夜市</button>
+</div>
+
+<!-- 回首頁按鈕 -->
+<button id="goHome" onclick="goHome()">回首頁</button>
+
+<!-- 內容區域 -->
+<div class="sections">
+  <section id="美食">
+    <h2>美食</h2>
+    <div id="foodInfo"></div> <!-- 動態顯示美食店家資訊 -->
+  </section>
+  <section id="飲品">
+    <h2>飲品</h2>
+    <div id="drinkInfo"></div> <!-- 動態顯示咖啡店家資訊 -->
+  </section>
+  <section id="夜市">
+    <h2>夜市</h2>
+    <div id="nightMarketInfo"></div> <!-- 動態顯示夜市店家資訊 -->
+  </section>
+</div>
+
+<!-- 回到頂部按鈕 -->
+<button id="scrollToTop" onclick="window.scrollTo(0, 0);">↑</button>
+
+<script>
+  // 解析 URL 中的參數
+  function getQueryParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+  }
+
+  // 根據 PlaceId 獲取營業狀態
+  function fetchBusinessStatus(universityId,placeId) {
+    return fetch(`http://localhost:8080/api/universities/${universityId}/places/${placeId}/status`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        return response.json();
+      })
+      .then(data => data.status)
+      .catch(error => {
+        console.error(`無法取得 UniversityId ${universityId} 和 PlaceId ${placeId} 的營業狀態：`, error);
+        return "無法載入";
+      });
+  }
+
+  // 更新頁面上的營業狀態
+  async function updateBusinessStatus(universityId,placeIds) {
+    for (const placeId of placeIds) {
+      try {
+        const status = await fetchBusinessStatus(universityId,placeId);
+        const statusElement = document.getElementById(`status-${placeId}`);
+        if (statusElement) {
+          statusElement.textContent = status; // 更新對應的 <span> 內容
+          statusElement.classList.add('status'); // 動態添加 `status` 類別
+          // 根據不同的狀態添加相應的類名
+          statusElement.classList.remove('open', 'closed', 'rest');
+          if (status === "營業中") {
+            statusElement.classList.add('open');
+          } else if (status === "已打烊") {
+            statusElement.classList.add('closed');
+          } else if (status === "今日休息") {
+            statusElement.classList.add('rest');
+          }
+        }
+      }
+      catch (error) {
+        console.error(`更新 PlaceId ${placeId} 的營業狀態時出錯：`, error);
+      }
+    }
+  }
+
+  // 根據學校名稱顯示對應資訊
+  window.onload = function() {
+    const schoolName = getQueryParameter('school');
+    if (schoolName) {
+      document.getElementById('schoolName').textContent = schoolName;
+    }
+
+    // 顯示對應學校的店家資訊
+    if (schoolName === '輔仁大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：新北市新莊區建國一路3號'; // 輸入學校的地址
+      document.getElementById('foodInfo').innerHTML =
+
+        '<h3>店名：名廚鐵板燒</h3>' +
+        '<p>地址：新北市新莊區建國一路3號</p>' +
+        '<p>營業時間：一－日 11:30－14:30，17:00－21:30</p>' +
+        '<p>目前營業狀態：<span id="status-1301"></span></p>' +
+        '<p>電話：02 2904 3513</p>' +
+        '<p>路程：走路8分鐘</p>' +
+        // 使用 Slick 圖片輪播
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipOhWlFH1gqX293IXM5gs4zOm_rleSdVXKHKOo_L=s1360-w1360-h1020" ' +
+        'alt="1301-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNfGQu_GLOiiElt651Geu6AIF34MyENbCH8MXPk=s1360-w1360-h1020" ' +
+        'alt="1301-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipOisPJjT93SIt9Qd-y-YrGopyPE1OrQGHjIeUv_=s1360-w1360-h1020" ' +
+        'alt="1301-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+
+
+        '<h3>店名：Danny\'s Toasties 熱壓吐司</h3>' +
+        '<p>地址：新北市新莊區中正路514巷11號</p>' +
+        '<p>營業時間：一－五 07:30－15:00，16:00－17:30，六 08:30－14:00</p>' +
+        '<p>目前營業狀態：<span id="status-1302"></span></p>' +
+        '<p>電話：0978 322 777</p>' +
+        '<p>路程：走路8分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipOvCuxdO7Q4DKhavn2NDGZn48h49-pJNa9pG8Pu=s1360-w1360-h1020" ' +
+        'alt="1302-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipO11GvtNmlfmPXX2tFTlv1zSPFp-IXYff_oLPiA=s1360-w1360-h1020" ' +
+        'alt="1302-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNL-2E8FoCNAPcSEkm8U3DLqimmyGWv-NslZWzt=s1360-w1360-h1020" ' +
+        'alt="1302-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipPGR893IPnsrcxhADaiMvfDD5ztx5SBTXFHN06D=s1360-w1360-h1020" ' +
+        'alt="1302-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+
+
+        '<h3>店名：輔大興德屏東夜市豆花</h3>' +
+        '<p>地址：新北市新莊區中正路514巷61號</p>' +
+        '<p>營業時間：一－六 12:00－23:00，日 15:00－23:00</p>' +
+        '<p>目前營業狀態：<span id="status-1303"></span></p>' +
+        '<p>電話：02 2901 2439</p>' +
+        '<p>路程：走路7分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipP2nobk7uIwN5GFJjv3U1kpXcHXfMDitKQpoK3a=s1360-w1360-h1020" ' +
+        'alt="1303-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNzyLlYpx1hWoQ2uObB7_MECcUEkl3G1DejA5QV=s1360-w1360-h1020" ' +
+        'alt="1303-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNwX7aq77XoFce7L0XCmRcg0o8lchjSDOcN5jn3=s1360-w1360-h1020" ' +
+        'alt="1303-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipPD1nFnpwSoYOs14JF9_6aXU43Z3NMFGMN1LgNY=s1360-w1360-h1020" ' +
+        'alt="1303-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+
+        '<h3>店名：芊苡號</h3>' +
+        '<p>地址：新北市新莊區中正路514巷99號</p>' +
+        '<p>營業時間：一－五 11:00－19:00</p>' +
+        '<p>目前營業狀態：<span id="status-1304"></span></p>' +
+        '<p>電話：0937 151 505</p>' +
+        '<p>路程：走路6分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipMKNLbrR3_D4laWTftsw8WQ4mFr38ZR448smhWR=s1360-w1360-h1020" ' +
+        'alt="1304-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNf5TeXoF2Pt0QO9t5Ynp0WKFB9DXrAECLRTOup=s1360-w1360-h1020" ' +
+        'alt="1304-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNYZOUw_jGG_gKRtIZSlIWx2mWpUrwbuyviYq-R=s1360-w1360-h1020" ' +
+        'alt="1304-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipOCmY8Fsy3DkK0_aSonQ9Xpb6238_LVN_PjINEP=s1360-w1360-h1020" ' +
+        'alt="1304-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+
+        '<h3>店名：勁牛肉麵</h3>' +
+        '<p>地址：新北市新莊區建國一路28號</p>' +
+        '<p>營業時間：一－日 11:30－21:00，六公休</p>' +
+        '<p>目前營業狀態：<span id="status-1305"></span></p>' +
+        '<p>電話：02 2904 2271</p>' +
+        '<p>路程：走路9分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipPc7IGjPlT-PTkMb3JTUYAQ4qin4WSqen9H3Jp0=s1360-w1360-h1020" ' +
+        'alt="1305-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipMS7xZ3qJQUIbhsVw0vNFlzWuXDbljxd_9gnfOM=s1360-w1360-h1020" ' +
+        'alt="1305-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipOw4NiH-sZiL8x_i_FVLzByD-N7zKmE5jWS5hRn=s1360-w1360-h1020" ' +
+        'alt="1305-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipMhNzEr-VI3Lnp31anEEeX4Yx9sr0akwIYSMPme=s1360-w1360-h1020" ' +
+        'alt="1305-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('drinkInfo').innerHTML =
+        '<h3>店名：果汁霸</h3>' +
+        '<p>地址：新北市新莊區中正路514巷15號</p>' +
+        '<p>營業時間：一－五 11:00－20:00，六 11:00－17:00，日 16:00－20:00</p>' +
+        '<p>目前營業狀態：<span id="status-1306"></span></p>' +
+        '<p>電話：0968 935 900</p>' +
+        '<p>路程：走路8分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNm7uvURKyS_8cchMckMM8tGymXpfUTSIG6DOw2=s1360-w1360-h1020" ' +
+        'alt="1306-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipMTx5b1NRzldn8nrNMOP881stt9DzBSFU44NMVW=s1360-w1360-h1020" ' +
+        'alt="1306-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNWvwYUx5hm4RxRsUslRl3YLvO30b_z7F0_oPV7=s1360-w1360-h1020" ' +
+        'alt="1306-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+
+        '<h3>店名：工寓咖啡 café industry</h3>' +
+        '<p>地址：新北市新莊區中正路593號2樓</p>' +
+        '<p>營業時間：一－日 11:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-1307"></span></p>' +
+        '<p>電話：02 2904 0024</p>' +
+        '<p>路程：走路8分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipPJDpBiIOC4rCWNtNfQeRKXU-MdDZ_MYCHafpOS=s1360-w1360-h1020" ' +
+        'alt="1307-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNFgGk0kXQN_J4V72-2Y30pC8SWM5LNjCn_6a4u=s1360-w1360-h1020" ' +
+        'alt="1307-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNzQDyi6zPE1hHGXX8LQq6cOSdjti4tiyK2BZlz=s1360-w1360-h1020" ' +
+        'alt="1307-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipPKWm0gActjVSOGgwUxLg7K0GpKIHPBX_2rhb57=s1360-w1360-h1020" ' +
+        'alt="1307-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+
+        '<h3>店名：Laifu coffee 來福咖啡</h3>' +
+        '<p>地址：新北市新莊區建安街40巷22號</p>' +
+        '<p>營業時間：一、四、五 13:00－19:00，六 11:00－18:00，日 11:00－19:00</p>' +
+        '<p>電話：無</p>' +
+        '<p>目前營業狀態：<span id="status-1308"></span></p>' +
+        '<p>路程：騎車7分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipPxz4fjKIwWEBcrQ5tSFcCtUktNhfm1rEoFJu__=s1360-w1360-h1020" ' +
+        'alt="1308-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipOhVMsu5-DWeytbWBXjav6abJEUpJNiQUyCef1Y=s1360-w1360-h1020" ' +
+        'alt="1308-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipMjZ4tu250vpuhpH69H9ZPVAlKFE_8d_uK1dOtc=s1360-w1360-h1020" ' +
+        'alt="1308-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNpDHGIrjSbJHDJzwYEdLduBb47c1r8rME_o8Xy=s1360-w1360-h1020" ' +
+        'alt="1308-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：哈姆喫茶</h3>' +
+        '<p>地址：新北市新莊區中正路514巷25號</p>' +
+        '<p>營業時間：一－五 12:00－21:00，六－日 13:00－19:00</p>' +
+        '<p>電話： 02 2904 2722</p>' +
+        '<p>目前營業狀態：<span id="status-1309"></span></p>' +
+        '<p>路程：走路8分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipOk0-jbTVSfiq9Fj_zNGQ0iC0ei7ES0gURmDPIr=s1360-w1360-h1020" ' +
+        'alt="1309-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP3bxpe4QAuBPvmoAasewT-FP_g2QboudUaNkLG=w800-h600" ' +
+        'alt="1309-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipOhxoYKneqaEkgeoiG_p1Q4tKX-q-IEHQjbw9B0=s1360-w1360-h1020" ' +
+        'alt="1309-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMbV_PqPPYQNzDOQawxbzQ88Edq2bwzJeNx_2PV=w800-h600" ' +
+        'alt="1309-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('nightMarketInfo').innerHTML =
+        '<h3>新莊廟街夜市</h3>' +
+        '<p>地址：新北市新莊區新莊路</p>' +
+        '<p>營業時間：一－日 16:00－00:00</p>' +
+        '<p>目前營業狀態：<span id="status-1310"></span></p>' +
+        '<p>路程：3.2公里，騎車10分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipMflelQOruusKY30pSwhwJHd1ApH2rRLm2XYxf7=s1360-w1360-h1020" ' +
+        'alt="1310-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipNRc3a7r84F8d84PL7xZqQsV_DPkkjFEUtHhOow=s1360-w1360-h1020" ' +
+        'alt="1310-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipPKVkstjf7VqhT-DyKUEbpwPf0TdyXbJK06ogGG=s1360-w1360-h1020" ' +
+        'alt="1310-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipN_bpkxT4zs9rfxxusYN3Fj6p4MCutfb5wqWTkG=s1360-w1360-h1020" ' +
+        'alt="1310-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      const universityId = 13; // 替換成實際的大學 ID
+      const placeIds = [1301, 1302, 1303, 1304, 1305, 1306, 1307, 1308, 1309, 1310]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+
+
+    } else if (schoolName === '國立清華大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：新竹市東區光復路二段101號';
+      document.getElementById('foodInfo').innerHTML =
+        '<h3>店名：水源街麵食館</h3>' +
+        '<p>地址：新竹市東區水源街15號</p>' +
+        '<p>營業時間：二－日 11:00－14:00，17:00－20:00，一公休</p>' +
+        '<p>目前營業狀態：<span id="status-604"></span></p>' +
+        '<p>電話:03 575 1766</p>' +
+        '<p>路程:走路12分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPjAsCXh5JnwkUWpcYsVtvbkYwBrWx_uvaKNpV1" ' +
+        'alt="604-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNxF-f7z8R8Ablu3_o1LFp3_TXs4ugmOVNccTOB=w600-h800-no" ' +
+        'alt="604-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMNrM42WuMBgYul1SRZ_AwZv7G7s1BVM0pw17aP" ' +
+        'alt="604-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+
+        '<h3>店名：港島主麵</h3>' +
+        '<p>地址：新竹市東區建新路8號</p>' +
+        '<p>營業時間：一－日 11:00－20:00</p>' +
+        '<p>目前營業狀態：<span id="status-605"></span></p>' +
+        '<p>電話：03 575 1766</p>' +
+        '<p>路程：走路4分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMK2DgRV-Z9Kp7D-B7vpDvC7NC8Iyf-eagGUjlY=w600-h800-no" ' +
+        'alt="605-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMdY53Gl3Mv9QDDw3iyWtCHZL3ZPFRTCBdzI7Ip=w1600-h800-k-no" ' +
+        'alt="605-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO6vgDEsbhyqu_qbg93BjZsMC8-fSLRXrLqH8I1=w800-h600" ' +
+        'alt="605-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP-kqJEFGgl4phCb6hWgvfhulTCbhJJeW7I7Tdu" ' +
+        'alt="605-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+
+        '<h3>店名：永記牛肉麵</h3>' +
+        '<p>地址：新竹市東區建新路32號</p>' +
+        '<p>營業時間：一－日 11:00－13:30，17:00－20:00 六公休</p>' +
+        '<p>目前營業狀態：<span id="status-606"></span></p>' +
+        '<p>電話：03 572 9173</p>' +
+        '<p>路程：走路5分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNxF-f7z8R8Ablu3_o1LFp3_TXs4ugmOVNccTOB=w600-h800-no" ' +
+        'alt="606-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOJ_1xc7vQrzX0rk3fns-fIbg9xHZ8tVJyDKCSB=w600-h800-no" ' +
+        'alt="606-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPWAk4wAJP3cYWJhm71nDFQXT7RtaYCHExxQdsY=w600-h800-no" ' +
+        'alt="606-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNA9emR6F6NjJY-2vQ8ickUbJGjMv-5wAsfIA5q=w600-h800-k-no" ' +
+        'alt="606-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+
+        '<h3>店名：貝恩義大利料理</h3>' +
+        '<p>地址：新竹市東區建新路92號1樓</p>' +
+        '<p>營業時間：二－日 11:00－14:00，17:00－20:30，一公休</p>' +
+        '<p>目前營業狀態：<span id="status-607"></span></p>' +
+        '<p>電話：0933 896 619</p>' +
+        '<p>路程：走路5分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOGnajqtHdMbwl3rpapvY1SLOK0gEA76ZoC82ML=w600-h800-k-no" ' +
+        'alt="607-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO6Wufxnj5MPxFIrqZuKveqTP0eiRA8XJsRJhDr=w600-h800-k-no" ' +
+        'alt="607-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO4FJKa1aI3jyT1gmg3LGrZE7z-eI_nkw2JXjDm=w600-h800-k-no" ' +
+        'alt="607-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：雙饗丼-新竹清大店</h3>' +
+        '<p>地址：新竹市東區建功路51巷9號</p>' +
+        '<p>營業時間：一－日 11:00－14:00，17:00－20:30</p>'+
+        '<p>目前營業狀態：<span id="status-608"></span></p>'+
+        '<p>電話：03 516 5855</p>'+
+        '<p>路程：走路5分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMuCefOLu79qbsLknt7VBtUYroSvEo66byill27" ' +
+        'alt="608-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPSapMvnlDGVYmstiLJptuoLQEsMwcYRYe6VaIz" ' +
+        'alt="608-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNx-HM-DqKKKnnzdvLORgen2HG3Q5xwwXDmDoXC\n" ' +
+        'alt="608-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      document.getElementById('drinkInfo').innerHTML =
+        '<h3>店名：日出咖啡</h3>' +
+        '<p>地址：新竹市東區金二路4號</p>' +
+        '<p>營業時間：二－日 10:00－18:00，一公休</p>' +
+        '<p>目前營業狀態：<span id="status-601"></span></p>' +
+        '<p>電話：03 516 9220</p>' +
+        '<p>路程：走路12分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMUxPD7sK0CXdTVmE0BPnknlBXnTFzVaw2eMdTo=w1024" ' +
+        'alt="601-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src=" https://lh5.googleusercontent.com/p/AF1QipOM1U-E8z34vIoP1IKD96282bbyBAGu4I4yoT2z=w1024" ' +
+        'alt="601-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPx2Nba7OILnCJdMye_x-OTzrRQ8mloQqb0S8xa=w1024" ' +
+        'alt="601-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：Defcoffee</h3>' +
+        '<p>地址：新竹市東區建新路7號1樓</p>' +
+        '<p>營業時間：一－五 07:30－15:00，六 10:00－16:00，日公休</p>' +
+        '<p>目前營業狀態：<span id="status-602"></span></p>' +
+        '<p>電話：0909 618 610</p>' +
+        '<p>路程：走路4分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNkfYa7fVM2bmfGWT4-OB3T3sdpWluWDFXsJCB-=w600-h800-no" ' +
+        'alt="602-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP5HxN4LEaN0Wjz0KLY7pVG_fMNAfkld-ebaAkP=w600-h800-no" ' +
+        'alt="602-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP5vY83YkZLSDtHgO7AuvIWdGVQCsgf9Rqu2ynE=w600-h800-k-no" ' +
+        'alt="602-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+
+        '<h3>店名：飛行樹屋咖啡</h3>' +
+        '<p>地址：新竹市東區光復路二段18巷17號</p>' +
+        '<p>營業時間：二－日 11:30－00:00，一公休</p>' +
+        '<p>目前營業狀態：<span id="status-603"></span></p>' +
+        '<p>電話：0903 680 067</p>' +
+        '<p>路程：騎車4分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOPEwinY4jvi-XZN-Ztlsx9QGYg9TbgNe3j_lIO=w600-h800-k-no" ' +
+        'alt="603-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNNKffqMtATfS3NwG7N7kyFaqoTVfc0xaF03tTV=w600-h800-k-no" ' +
+        'alt="603-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPANTZfBlwMcu1hDQ4s5iSWwkJkJH3IJokDkpq3" ' +
+        'alt="603-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('nightMarketInfo').innerHTML =
+        '<h3>清大夜市</h3>' +
+        '<p>地址：新竹市東區建功路&建功一路</p>' +
+        '<p>營業時間：一－日 17:00－00:00</p>' +
+        '<p>目前營業狀態：<span id="status-609"></span></p>' +
+        '<p>路程：走路4分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNskt2Zdk0ThxOz2ucq9TpUNNgMz0mGZmwn3vOB" ' +
+        'alt="609-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPeVmkOdrTpUQdVqazu3YK6dA21-QuIvKVO0xkn" ' +
+        'alt="609-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOkNK-UX7mzfDH7m2d0_ec2hq96SC7LZrOfYA2C" ' +
+        'alt="609-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      const universityId = 6; // 替換成實際的大學 ID
+      const placeIds = [601, 602, 603, 604, 605, 606, 607, 608, 609]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else if (schoolName === '國立陽明交通大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：新竹市東區大學路1001號';
+      document.getElementById('foodInfo').innerHTML =
+
+        '<h3>店名：六家橋頭早餐(客院早餐)</h3>' +
+        '<p>地址：新竹縣竹北市自強南路251號</p>' +
+        '<p>營業時間：一－五 03:30－07:30</p>' +
+        '<p>目前營業狀態：<span id="status-901"></span></p>' +
+        '<p>電話：0928 328 554</p>' +
+        '<p>路程：騎車約10分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNTXIZ5QmSncnXDB14pbROhipwdqJdADIXkaE_5" ' +
+        'alt="901-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMAGMGT5aFwnCrXZjaVVzuCJ2h-RX9cs0gu3lar" ' +
+        'alt="901-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNIdDECUp_mGSeLh2U4QoHh8uxkVRt2k8WsrDzG" ' +
+        'alt="901-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM4Tt9INEcQovoVlNr8EdCW_puoOMP96GYKAb_V" ' +
+        'alt="901-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：傑里麵包</h3>' +
+        '<p>地址：新竹市東區關新東路278號</p>' +
+        '<p>營業時間：一－日 11:00－19:00</p>' +
+        '<p>目前營業狀態：<span id="status-902"></span></p>' +
+        '<p>電話：03 666 7082</p>' +
+        '<p>路程：騎車約7分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPvuDz3kcRBLD-PpKcYz4r6IGmSdaugETVpDKyN" ' +
+        'alt="902-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMS-zFBwrq0XnQDk-LOTpR-Df5DRgioG0RC0Khe" ' +
+        'alt="902-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src=" https://lh5.googleusercontent.com/p/AF1QipPbUlUHPCOaJWBHZQp436xcV_v3GtGhstMOZcXA" ' +
+        'alt="902-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO-2vozPzxJJyNffJ6sI1-d0SV1Z1Ux_T2_JKnH" ' +
+        'alt="902-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+
+        '<h3>店名：燃舍串燒き金山總店</h3>' +
+        '<p>地址：新竹市東區金山街160號</p>' +
+        '<p>營業時間：一－日 18:00－01:00</p>' +
+        '<p>目前營業狀態：<span id="status-903"></span></p>' +
+        '<p>電話：03 578 8851</p>' +
+        '<p>路程：騎車約9分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src=" https://lh5.googleusercontent.com/p/AF1QipOQfs6KgY8MgKRfP6AU_sdBbTWddnwKNBMIJQCz" ' +
+        'alt="903-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMLQTZ8bPyuQwxakQ5iLH8WW9wdArV6cTQAH_Yt" ' +
+        'alt="903-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM-OJwVWjxVwmzIZg7GJTKybqCjeh_tsZIDjFdV" ' +
+        'alt="903-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOJ4NjXIxBLYn_aOORNxUPWWFKMVPT5JIKTOX7p" ' +
+        'alt="903-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：傳說上的鳥（伝説上の鳥 ）雞白湯拉麵</h3>' +
+        '<p>地址：新竹市東區新莊街206巷16號1樓</p>' +
+        '<p>營業時間：二－日 17:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-904"></span></p>' +
+        '<p>電話：無提供</p>' +
+        '<p>路程：騎車約6分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMIa3A7mHNtNgPdBQsATDyk2UDunS3cfhZKhMGQ=w800-h600" ' +
+        'alt="904-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMz4Ix8vY-ErGS1SM35SKYtcBTp61rVMcGRbuG4=w800-h600" ' +
+        'alt="904-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM3Mp1okg07iqOUkBrD9C067JJlkB5Cd6_jsh5l" ' +
+        'alt="904-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMciEyCxEpqnwsyySfB4DafAV0SN-lZHyvt2b_A=w800-h600" ' +
+        'alt="904-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：森作餐廚</h3>' +
+        '<p>地址：新竹市東區大學路17號</p>' +
+        '<p>營業時間：一－五 11:00－13:00、17:00－19:00</p>' +
+        '<p>目前營業狀態：<span id="status-905"></span></p>' +
+        '<p>電話：0968 950 914</p>' +
+        '<p>路程：步行約7分鐘，騎車約1分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPfgqm7NLjPE72zLJND8FL-23IEPoOfvsZPNS-G" ' +
+        'alt="905-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src=" https://lh5.googleusercontent.com/p/AF1QipNajgITBIG0dBdk_TF3sU84_4Uk5OZ-mAqKUwgN" ' +
+        'alt="905-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPv48B8k3Ehx_R-YW-rkeeyQrp1qtaMGrfaGM4M" ' +
+        'alt="905-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOmI9VNwU3hW0kaFZq7kZwjUlDTCQ-_BPKnQ6W8" ' +
+        'alt="905-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('drinkInfo').innerHTML =
+        '<h3>店名：貳參咖啡二店</h3>' +
+        '<p>地址：新竹市東區東大路一段196號之二</p>' +
+        '<p>營業時間：一－日 10:00－18:00</p>' +
+        '<p>目前營業狀態：<span id="status-906"></span></p>' +
+        '<p>電話：03 533 2020</p>' +
+        '<p>路程：騎車約11分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO1ugK7k_A5UPiNHFKFEu1iE7J2Hb1OfJsT3GvR=w800-h600" ' +
+        'alt="906-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN9nkaX1b2Nj8-X_1MTMPI4C_czrYAL_1ukyZyt=w800-h600" ' +
+        'alt="906-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP95ul7ZFfDID4oeauukN_mkeEFfVvmgHeJEpG4" ' +
+        'alt="906-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：Hidden off</h3>' +
+        '<p>地址：新竹市北區建興街13號</p>' +
+        '<p>營業時間：一－二、五－日 10:30－18:30</p>' +
+        '<p>目前營業狀態：<span id="status-907"></span></p>' +
+        '<p>路程：騎車約13分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPRymk7OrywbxeV6SJfCWwiBPndKO441-FS9Pqw" ' +
+        'alt="907-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM7jq8FebFDWJFYwVXwEydJR7oa8vQdmcuPfLU_" ' +
+        'alt="907-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN8WS6zxE69Rxp0756ZedIuFW2S5Q0JtdXO2utV=w800-h600" ' +
+        'alt="907-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMM-0QTFhKoMhI0PUJmwKYi9oazUn0V360Eiy0t=w800-h800" ' +
+        'alt="907-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>' ;
+
+
+      document.getElementById('nightMarketInfo').innerHTML =
+        '<h3>新竹慈雲夜市</h3>' +
+        '<p>地址：新竹市東區</p>' +
+        '<p>營業時間：五 18:00－23:00</p>' +
+        '<p>目前營業狀態：<span id="status-908"></span></p>' +
+        '<p>路程：騎車約6分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNUREVlKJjbf_bLW6WLtP5A2fPUAzWJPmiD-brV" ' +
+        'alt="908-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPfMOpYcaiXEpwTCq15Q0DLcGsQnDrOn-Ql2MaL" ' +
+        'alt="908-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src=" https://lh5.googleusercontent.com/p/AF1QipP8xtcmw4h7CiPyNLMu4qU_wsl3Uqq0TU9wy5Cn" ' +
+        'alt="908-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOLbCx0NYdL21aqyKeQXzv_Y62pkzl0IYBH62UK" ' +
+        'alt="908-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      const universityId = 9; // 替換成實際的大學 ID
+      const placeIds = [901, 902, 903, 904, 905, 906, 907, 908]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else if (schoolName === '國立中央大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：桃園市中壢區中大路300號';
+      document.getElementById('foodInfo').innerHTML =
+
+        '<h3>店名：No.17 White House</h3>' +
+        '<p>地址：桃園市中壢區中央路216巷21號</p>' +
+        '<p>營業時間：一－六 11:30－13:30，17:00－19:30，六－日公休</p>' +
+        '<p>目前營業狀態：<span id="status-801"></span></p>' +
+        '<p>電話：03 490 3099</p>' +
+        '<p>路程：走路12分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipORgE3-o3k9IsK5JUq-reDUAwdZpazEjoCU_NG0" ' +
+        'alt="801-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPmytyo8Xw7qs4Xbt6jXq3oKf_Hy483VWtRWJ5-" ' +
+        'alt="801-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNheAXs2ui8DNW7SUe4lM3KH3emAV2C0CwcuE3_" ' +
+        'alt="801-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：LALA Kitchen 新美式餐廳(中大店)</h3>' +
+        '<p>地址：桃園市中壢區中央大學松苑餐廳2樓</p>' +
+        '<p>營業時間：三－日 11:30－21:00，一－二公休</p>' +
+        '<p>目前營業狀態：<span id="status-802"></span></p>' +
+        '<p>電話：03 420 7787</p>' +
+        '<p>路程：走路10分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMe3G1zZFvC5XL-pHULpKkZvg2td9IG1YT9zVK9" ' +
+        'alt="802-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPD85dVIrdZogZYgBnTTGGzKhsnu7fqP_qzZ2uO" ' +
+        'alt="802-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPIW6Fl8UpK8Trtx6oTg3eCOhqFN9WT-x5XdiZW" ' +
+        'alt="802-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNVQRhYnuniks0K8i75r2yy5FlzA6wYvB0rYJJh" ' +
+        'alt="802-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：麥克小姐</h3>' +
+        '<p>地址：桃園市平鎮區中央路145號</p>' +
+        '<p>營業時間：一－六 11:00－14:30，17:00－20:30，日公休</p>' +
+        '<p>目前營業狀態：<span id="status-803"></p>' +
+        '<p>路程：走路13分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOlijsilpAN4DRMJii8k-XVeqb3HCmDtFYAJ0pi" ' +
+        'alt="803-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMfK3qaufaLPEGvcPiBKcZhcbXfpaYFFcoSIxbj" ' +
+        'alt="803-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN0hu1BGVW21IsITmF_Roa0OmW8W4eU2TISWiu8" ' +
+        'alt="803-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNmZbbjTsJSzdXsn9aktR90rR_qK4Bxj37x2uz4" ' +
+        'alt="803-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：熱浪島南洋蔬食茶堂(中壢店)</h3>' +
+        '<p>地址：桃園市中壢區中央路216巷86弄58-1號</p>' +
+        '<p>營業時間：一－二 11:00－14:00、17:00－20:00，五－日 11:00－14:00、17:00－20:00，三－四公休</p>' +
+        '<p>目前營業狀態：<span id="status-804"></span></p>' +
+        '<p>電話：03 490 9995</p>' +
+        '<p>路程：走路12分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP76QTm0YJODhcvp_H6LA4bD63HOj3vVrqmxHoy" ' +
+        'alt="804-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMgmLxaucfQdYNapoU7jZWcVcJuvj1pkhFcyWQ7" ' +
+        'alt="804-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOQrgHxktMhYs70ima-07Xeee9i49qRNQYHD6CU" ' +
+        'alt="804-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNCh-EdqmsCBA097TM6ohIMOmixpb3EbKlGtmdM" ' +
+        'alt="804-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：新負麵能量2.0</h3>' +
+        '<p>地址：桃園市中壢區中央路230號</p>' +
+        '<p>營業時間：一－五 10:00－21:00，六－日公休</p>' +
+        '<p>目前營業狀態：<span id="status-805"></span></p>' +
+        '<p>電話：0931 079 499</p>' +
+        '<p>路程：走路12分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMn_aMvUwZ5zCkLBC9Mh20oGmNL3-tiVBS4MnZ3" ' +
+        'alt="805-1" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('drinkInfo').innerHTML =
+
+        '<h3>店名：Backdoor Café</h3>' +
+        '<p>地址：桃園市中壢區中央路216巷9號</p>' +
+        '<p>營業時間:二－日 12:30－18:00，一公休</p>' +
+        '<p>目前營業狀態：<span id="status-806"></span></p>' +
+        '<p>電話：03 490 0655</p>' +
+        '<p>路程：走路12分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPPWnV51kowopvzVMMYVCnb8luMLb8Dt9IlsURv" ' +
+        'alt="806-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMxfpJlNrQdYsIAA88fNyObGpHbyHdhB21g1k42" ' +
+        'alt="806-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNDl7qxihSxnf_b5drM_0zK31fk_H3jOff42hOo" ' +
+        'alt="806-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNHIzawUPoWv__NSid8VSr2v_H9WoqFWIFmrpF1" ' +
+        'alt="806-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：樂奇咖啡豆Lucky café & roastery</h3>' +
+        '<p>地址：桃園市中壢區中大路215之1號</p>' +
+        '<p>營業時間:一－六 12:00－18:00，日公休</p>' +
+        '<p>目前營業狀態：<span id="status-807"></span></p>' +
+        '<p>電話：0925 438 382</p>' +
+        '<p>路程：走路4分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNTZiQi24JagdklGITi2ypKBnM-6WAf7gybyPXn" ' +
+        'alt="807-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipPfyjUDEXdaXPqbvfAJcxmyRCX9D2RuC7DQUhHU=s1360-w1360-h1020" ' +
+        'alt="807-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh3.googleusercontent.com/p/AF1QipPZhC0oGPUCMz1uWJ1s0tKYDigy4GWMACg6TFft=s1360-w1360-h1020" ' +
+        'alt="807-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMSo6AqOeLCBS_zjF-VWo-yhxUOslGFNHBju9Xh" ' +
+        'alt="807-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：藍屋咖啡廳</h3>' +
+        '<p>地址：桃園市平鎮區中央路255巷1號</p>' +
+        '<p>營業時間：一－日 09:00－17:00，六公休</p>' +
+        '<p>目前營業狀態：<span id="status-808"></span></p>' +
+        '<p>電話：03 420 0969</p>' +
+        '<p>路程：走路15分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO15Xfjq1QrBbzcpAHtfimU7l_n37wDewosdrHI" ' +
+        'alt="808-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMQX_8dwFz6B91LMmV_CAiKvn6VEKHgNvAHIytg" ' +
+        'alt="808-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM66LIhR1lpvTfovje9ZSdd2wiLvqfxSNTtOR_q" ' +
+        'alt="808-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipORAidlJzDTLfvO5ajl_sPSEOYLnAET783ZAoLn" ' +
+        'alt="808-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      document.getElementById('nightMarketInfo').innerHTML =
+        '<h3>中壢（新明）觀光夜市</h3>' +
+        '<p>地址：桃園市中壢區新明路</p>' +
+        '<p>營業時間：一－日 17:00－00:00</p>' +
+        '<p>目前營業狀態：<span id="status-809"></span></p>' +
+        '<p>路程：騎車8分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO5X_XzpRMBYhJeJMnk2OJd6sThMr8G85LcLshP" ' +
+        'alt="809-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN4f4c4od72_gzR8ROhoBM8HXmH9QrxxCqmO5qR" ' +
+        'alt="809-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMQo4bvtj6gAVoqi7aRfCySK_03N30KHWMFJkJt" ' +
+        'alt="809-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      const universityId = 8; // 替換成實際的大學 ID
+      const placeIds = [801, 802, 803, 804, 805, 806, 807, 808, 809]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else if (schoolName === '國立政治大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：台北市文山區指南路二段64號';
+      document.getElementById('foodInfo').innerHTML =
+
+        '<h3>店名：湘湘牛排館</h3>' +
+        '<p>地址：台北市文山區指南路二段12號</p>' +
+        '<p>營業時間：一－日 11:30－22:30</p>' +
+        '<p>目前營業狀態：<span id="status-301"></span></p>' +
+        '<p>電話：0229 379 277</p>' +
+        '<p>路程：騎車約2分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP8yoWASV583HrBxVx-VTuduSj-kvrwljiFumRB" ' +
+        'alt="301-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNYmoZsKP71FLFvnYJqhTxGQQOgGMb4JpV8-s7X=w800-h600" ' +
+        'alt="301-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOEgEyI0w13ruWnRPoHJldRHs8II5gL35tSoFwl" ' +
+        'alt="301-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOQSyKQ4FE78uJP65SfyARnwcKV_FAZnxZwF7Py=w800-h600" ' +
+        'alt="301-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：MJ餛飩超人</h3>' +
+        '<p>地址：台北市文山區指南路二段213號</p>' +
+        '<p>營業時間：一－六 11:30－15:00、16:30－20:00</p>' +
+        '<p>目前營業狀態：<span id="status-302"></span></p>' +
+        '<p>電話：0937 190 583</p>' +
+        '<p>路程：騎車約1分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOTuV7BDU2aDPby_XdsHwzN_Pt6i9wt3hnDtJfA" ' +
+        'alt="302-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipON-2BfKVVCjsz2y4Jp3nY6SOswNnle5qq4xh9H=w800-h600" ' +
+        'alt="302-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOJ9z-qXWtS5NXJRExvwncmdINjokqz44ciYzrg" ' +
+        'alt="302-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO5HC9XDnF_if5wdMQu0kYd9-EcUT98t2-Y49qB" ' +
+        'alt="302-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：韓大佬</h3>' +
+        '<p>地址：台北市文山區新光路一段27號</p>' +
+        '<p>營業時間：二－日 11:00－14:00、17:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-303"></span></p>' +
+        '<p>電話：0229 385 008</p>' +
+        '<p>路程：騎車約3分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p" ' +
+        'alt="303-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOiMCEAeyBspP5x81GFjjNGLqzcVc8eT-Jf1d-r" ' +
+        'alt="303-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM1Wz42rXgx1dANIc4DWcqc-0smDKjnH5WsxICs" ' +
+        'alt="303-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNnQdJV9Mu3SJFORicPxVrRx7DGpOtHLuD5S_BQ" ' +
+        'alt="303-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：政大排骨王便當</h3>' +
+        '<p>地址：台北市文山區指南路二段119巷8號</p>' +
+        '<p>營業時間：一－五 10:00－13:30、16:00－19:00，六 10:00－13:30</p>' +
+        '<p>目前營業狀態：<span id="status-304"></span></p>' +
+        '<p>電話：0229 375 022</p>' +
+        '<p>路程：騎車約1分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN13anr2UdAQbP0Ffz2xLA-RzA6TqP1BR3h42tX" ' +
+        'alt="304-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNgjHWLWE4sfm64Hp_QFM2S8NdUvknZ-xD9_9-2=w800-h600" ' +
+        'alt="304-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN2f2Izmv6hVKGUXp49QEuQxCmgHOb7ZZjVvPHT=w800-h600" ' +
+        'alt="304-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src=" https://lh5.googleusercontent.com/p/AF1QipOw8ElJmn_7teTOG8FkNQL1XyW0yz-8DuhCZxft" ' +
+        'alt="304-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：極鮮滷味</h3>' +
+        '<p>地址：台北市文山區指南路二段119巷1號</p>' +
+        '<p>營業時間：一－五 14:00－22:00</p>' +
+        '<p>目前營業狀態：<span id="status-305"></span></p>' +
+        '<p>電話：無</p>' +
+        '<p>路程：騎車約1分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP5SAgLBgE3cf2kkoih_KpEvhAHWrZwuKg8uqHB=w800-h600" ' +
+        'alt="305-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOgLbfSbJ1qJV5a57F-0P5WMFbkaQWoOIQxJrE8" ' +
+        'alt="305-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMpfdqTTUhnYFtRzkZthxAHPhfQHKH3EBoNbJyb" ' +
+        'alt="305-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNpZVlVVJTMN15qQia7-Gl3XLNtIs77UnCITru8" ' +
+        'alt="305-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('drinkInfo').innerHTML =
+
+
+        '<h3>店名：the Second Half</h3>' +
+        '<p>地址：台北市文山區指南路三段5號</p>' +
+        '<p>營業時間：二－日 12:00－21:00，一公休</p>' +
+        '<p>目前營業狀態：<span id="status-306"></span></p>' +
+        '<p>電話：02 2936 6684</p>' +
+        '<p>路程：騎車約1分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNiqa1ha333jNupwaaylTQCdgUKd4QRDo21wp8m=w800-h600" ' +
+        'alt="306-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPN94nk-OO4GVrGKZ52t3JEYrK_IOQTN5gZEIyj" ' +
+        'alt="306-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOxylKT-yTtVMRsqc2q2VYBDcMsMy5uqGUk0YxS=w800-h600" ' +
+        'alt="306-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src=" https://lh5.googleusercontent.com/p/AF1QipNyz5jQomgJe3zrAwTirTOEEM_GsTLdiHjLB8Y0" ' +
+        'alt="306-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：咖啡大亨</h3>' +
+        '<p>地址：台北市文山區指南路二段45巷1號</p>' +
+        '<p>營業時間：一－四 10:00－18:00，六 10:00－16:30</p>' +
+        '<p>目前營業狀態：<span id="status-307"></span></p>' +
+        '<p>電話：02 2939 5081</p>' +
+        '<p>路程：騎車約2分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src=" https://lh5.googleusercontent.com/p/AF1QipNuU1iDpoLkMaqyDwT543aTB4vMNZOd87jJmpAL" ' +
+        'alt="307-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNy6Lbkfbxk7LVReMOWBhVakBp1haY-CbSL--gw" ' +
+        'alt="307-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNbompXKiztD5S1RrkfGT3UxFIvHARiASN580XR" ' +
+        'alt="307-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：政大伊果咖啡</h3>' +
+        '<p>地址：台北市文山區自強十舍</p>' +
+        '<p>營業時間：一－日 07:30－19:30</p>' +
+        '<p>目前營業狀態：<span id="status-308"></span></p>' +
+        '<p>電話：0282 376 056</p>' +
+        '<p>路程：騎車約7分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMBBKJEa8hrsAZ6y4UYBJA1F_fAD5SjWXiXNWaN" ' +
+        'alt="308-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP56AG3EIhZTRQ_YlTzAvjHLZqfoLnFtCk7Yzqu=w800-h600" ' +
+        'alt="308-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO3vvXRFayK1Ad7Hj5Xwm_IZqO4j0sHBNOR8eRm" ' +
+        'alt="308-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      document.getElementById('nightMarketInfo').innerHTML =
+        '<h3>景美夜市</h3>' +
+        '<p>地址：台北市文山區景美街</p>' +
+        '<p>營業時間 : 一－日 17:00－00:00</p>' +
+        '<p>目前營業狀態：<span id="status-309"></span></p>' +
+        '<p>路程：騎車約17分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM3bczvt-shB_e2jrTwjV65Q29GUNjDEEl8ssVd" ' +
+        'alt="309-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO1reAZ-BlAAmGhgrKHEXO2xlhHhZpnmE0a7HZp" ' +
+        'alt="309-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPG_5Szc0Fojsq9dtZ-u9Yit7LCzmngW5qUJsPX" ' +
+        'alt="309-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNuQlrKZm7QvFJLrf950Jwx618XFbeuarDFIX0G" ' +
+        'alt="309-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      const universityId = 3; // 替換成實際的大學 ID
+      const placeIds = [301, 302, 303, 304, 305, 306, 307, 308, 309]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else if (schoolName === '東吳大學(城中校區)') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：台北市中正區貴陽街一段56號';
+      document.getElementById('foodInfo').innerHTML =
+
+
+        '<h3>店名：中原福州乾麵</h3>' +
+        '<p>地址：台北市中正區延平南路164號</p>' +
+        '<p>營業時間：一－五 06:00－19:30，六－日公休</p>' +
+        '<p>目前營業狀態：<span id="status-701"></span></p>' +
+        '<p>電話：02 2331 2326</p>' +
+        '<p>路程：走路5分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMFakhF38Fh1_WPjiRmh-DSGb3VLSHkw0StkA_x" ' +
+        'alt="701-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOTfEbyXshzHFQhDkPOK7rk9CB2qac9BSIOpL6n" ' +
+        'alt="701-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMzt0B8EG7eq7KAquhjJAkFy_nGBqjzA5dnAnwq" ' +
+        'alt="701-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：珍香鍋貼（廣州店）</h3>' +
+        '<p>地址：台北市中正區廣州街10之6號</p>' +
+        '<p>營業時間：一－五 11:00－13:30，16:00－19:30 六－日公休</p>' +
+        '<p>目前營業狀態：<span id="status-702"></span></p>' +
+        '<p>電話：02 2371 0225</p>' +
+        '<p>路程：走路9分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP4oGfPbohUcKQUHtTps9xexTOF2VXjkTf6k6Es" ' +
+        'alt="702-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN3uXXNvhufzxYQU4reRjKLzKSqDivNszqfFSTd" ' +
+        'alt="702-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMQ8F-ALlETPIxpkVXbSXjTccqd4svRjKfumcng" ' +
+        'alt="702-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：背包廚房手工披薩咖啡屋</h3>' +
+        '<p>地址：台北市中正區延平南路179巷2號</p>' +
+        '<p>營業時間：一－日 11:00－15:00，16:00－20:00</p>' +
+        '<p>目前營業狀態：<span id="status-703"></span></p>' +
+        '<p>電話：02 2312 2508</p>' +
+        '<p>路程：走路10分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPcknO8TdxgqylTTx-34Y7w5NB1pj6SHUW4NfiS" ' +
+        'alt="703-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPUzbWjTDRD9JCeMSc2LwnNlac9aUU_cKNbE24j" ' +
+        'alt="703-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMWvIYuKhCdRJGLfeth2vok5k0ojwbmSD48-kVC" ' +
+        'alt="703-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOdDOAORaG0Q-hETloW1l-_5CcehzlugoKzT01S" ' +
+        'alt="703-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：樺林乾麵</h3>' +
+        '<p>地址：台北市中正區中華路一段91巷15號</p>' +
+        '<p>營業時間：一－五 07:30－14:30，六－日公休</p>' +
+        '<p>目前營業狀態：<span id="status-704"></span></p>' +
+        '<p>電話：02 2331 6371</p>' +
+        '<p>路程：走路4分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNlTbJhLTEcY13-Q-JWkTfUhrBMDvri27rxlleB" ' +
+        'alt="704-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMz6usNB1vSBEwvZfbJeTuvB0JQBdUx2e4PU_-X" ' +
+        'alt="704-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPOTvzlHMP3JAB8SJV4AXnQsTnOKM6sKbAeBhl4" ' +
+        'alt="704-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNAk3vD5f6eytx5_jdN7ctVOZndyQ6p_CyJaSoF" ' +
+        'alt="704-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：京畿道韓式料理</h3>' +
+        '<p>地址：台北市中正區延平南路216巷2號</p>' +
+        '<p>營業時間：一－六 11:30－14:00，日公休</p>' +
+        '<p>目前營業狀態：<span id="status-705"></span></p>' +
+        '<p>電話：02 2381 7896</p>' +
+        '<p>路程：走路10分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN6T8Fx4jRZ2xKdyvJCZYStdyr6t04okzx8QrFv" ' +
+        'alt="705-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMPr1phfniphS49aI9dY4_Uk_JxBWgHYiCNpWgS" ' +
+        'alt="705-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipODFPaygjqbFhF80ligdrdQ1X-HpVpcodGJB4IV" ' +
+        'alt="705-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN2y9yACJ8FgpZxqdaKLNEVkxgsSejGNnv3PUje" ' +
+        'alt="705-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('drinkInfo').innerHTML =
+
+        '<h3>店名：J&J CAFE</h3>' +
+        '<p>地址：台北市中正區衡陽路76號</p>' +
+        '<p>營業時間：一－日 10:00－20:00</p>' +
+        '<p>目前營業狀態：<span id="status-706"></span></p>' +
+        '<p>電話：02 2382 0558</p>' +
+        '<p>路程：走路6分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN2kPnJ1z2YHdDSJ-DZxuja_DZigioFo9dQgSp6" ' +
+        'alt="706-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM-fxQ6T2A7329S0i7UcAY0UXKCHlU47g1Z0Q02" ' +
+        'alt="706-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOUGoX6gWvcmVXIK2hapVLZzReScZB33RrDJF0a" ' +
+        'alt="706-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOM-VbTzUvB1VEWBzMy6V7cbOHe6NZWpXFeRGMn" ' +
+        'alt="706-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：Cafe365咖啡館</h3>' +
+        '<p>地址：台北市中正區廣州街10-4號 & 2樓座位區</p>' +
+        '<p>營業時間：一－五 07:00－18:00，六－日 09:00－17:00</p>' +
+        '<p>目前營業狀態：<span id="status-707"></span></p>' +
+        '<p>電話：02 2371 0005</p>' +
+        '<p>路程：走路8分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOmkmnwDP2eJA9nI2SBB6HmUhCm0U3y-h7k320S" ' +
+        'alt="707-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNpOAa3KmC-V9aSOhML6s7f3eSkX5QxAR5jcRq1" ' +
+        'alt="707-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP4pKeAs145yFDe7ej0S22acngywBAy4ZkQK-UD" ' +
+        'alt="707-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPdfrQnjHjOv4NERk0RZ2h1GbwiPH0V4rHPXnr1" ' +
+        'alt="707-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：艾萃咖啡 VR BAR</h3>' +
+        '<p>地址：台北市中正區長沙街一段20號延平南路段</p>' +
+        '<p>營業時間：一－五 09:30－19:00，六－日 09:30－18:00</p>' +
+        '<p>目前營業狀態：<span id="status-708"></span></p>' +
+        '<p>電話：02 7709 6065</p>' +
+        '<p>路程：走路4分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPj8MTKtrmolCt82goY4yug48Ywh3VDSGSN0o4" ' +
+        'alt="708-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOMk9_u-jLYFtLG16taYDhZtL8YAxvXZFVbvm8q" ' +
+        'alt="708-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNlw23tP0qyKRj011ZHPrIRZOAyZCk08m0X_TM" ' +
+        'alt="708-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMomhZ52DxcSrNa7rAZvuHNSLElIURvr_pSTXI" ' +
+        'alt="708-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      document.getElementById('nightMarketInfo').innerHTML =
+
+        '<h3>城中市場</h3>' +
+        '<p>地址：台北市中正區武昌街一段22巷</p>' +
+        '<p>營業時間：一－日 06:00－00:00</p>' +
+        '<p>目前營業狀態：<span id="status-709"></span></p>' +
+        '<p>路程：走路11分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNX5U335k9hq6nY0aeLdsYLiPQZu-rWTWlp8S9k" ' +
+        'alt="709-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOBBSyuo5Fu2dArq-ooMiuhXKZKqywupUq3_Lu1" ' +
+        'alt="709-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN741e1zkqDXulSLOTafKx1EW9_jEqB8WtpQhmn" ' +
+        'alt="709-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNdot733IOdAlKW-kg3ZRw-ND6Ma0Qkb1Zkq9e0" ' +
+        'alt="709-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      const universityId = 7; // 替換成實際的大學 ID
+      const placeIds = [701, 702, 703, 704, 705, 706, 707, 708, 709]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else if (schoolName === '國立台灣大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：台北市大安區羅斯福路四段1號';
+      document.getElementById('foodInfo').innerHTML =
+
+        '<h3>店名：鳳城燒臘</h3>' +
+        '<p>地址：台北市大安區新生南路三段58之3號</p>' +
+        '<p>營業時間：一－日 11:00－20:30</p>' +
+        '<p>目前營業狀態：<span id="status-201"></span></p>' +
+        '<p>電話：02 2363 3772</p>' +
+        '<p>路程：騎車約6分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOV8ZzoV-vhmRFzcDRKr0pZH5Azc0DBlu8uXUZN=w800-h600\n" ' +
+        'alt="201-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN-7uGKA0venp28TCzdUjxDHjLgPqM8h2p580g=w800-h600\n" ' +
+        'alt="201-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOC9zVntPjY-TZkvg8-4U2Mdr_rtzhX8paLkHPx=w800-h600\n" ' +
+        'alt="201-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：臺一牛奶大王</h3>' +
+        '<p>地址：台北市大安區新生南路三段82號</p>' +
+        '<p>營業時間：一－日 11:00－23:00</p>' +
+        '<p>目前營業狀態：<span id="status-202"></span></p>' +
+        '<p>電話：02 2363 4341</p>' +
+        '<p>路程：走路11分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN4Vwm2xZrOKtBhDWYRfAvLdgeDvJvM6XcsX2wZ=w800-h600\n" ' +
+        'alt="202-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMNjjrvDizZlnlb5UVUA0VhLtIqpyNsJ7Wh1rUL=w800-h600" ' +
+        'alt="202-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipODXgQo6hHKMcq2SCi3C6plfpv35McOfFZgVIg9=w800-h600\n" ' +
+        'alt="202-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNb0OqnYNBJnDNxDQno3a9SA9DMnM7gDjXk24xy=w800-h600\n" ' +
+        'alt="202-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：藍家割包</h3>' +
+        '<p>地址：台北市中正區羅斯福路三段316巷8弄3號</p>' +
+        '<p>營業時間：二－日 11:00~22:00</p>' +
+        '<p>目前營業狀態：<span id="status-203"></span></p>' +
+        '<p>電話：02 2368 2060</p>' +
+        '<p>路程：走路13分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPr3nVYglpp-uN5wl5FTE7ZgPejBLatvoMY2YBS=w800-h600\n" ' +
+        'alt="203-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP0wcIbJrfVr7FCoqaek4L33wnNX92CkeOiV_4P=w800-h600\n" ' +
+        'alt="203-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOTY_yF9G0aA5xoap2sL4e_sfKEQzU0sjFFQ1Ki=w800-h600\n" ' +
+        'alt="203-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM0PEEv_qBitkGL2HOuWZ11IvUfVr3QGA-kP81K=w800-h600\n" ' +
+        'alt="203-4" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPAd7WiMVRemlBpFJuQLwMq3YaKvV41KT7o7aZc=w800-h600\n" ' +
+        'alt="203-5" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：金名號雞肉飯</h3>' +
+        '<p>地址：台北市中正區羅斯福路四段136巷6弄2號</p>' +
+        '<p>營業時間：一－日 11:00－14:30，16:30－20:30</p>' +
+        '<p>目前營業狀態：<span id="status-204"></span></p>' +
+        '<p>電話：02 2365 0767</p><' +
+        'p>路程：騎車3分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP_8druQ8tjjSJBnnACWYFslKTtMWOkU7VxpZ2Q=w800-h600\n" ' +
+        'alt="204-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPIzS1e2WSv7EfY4ENT6OlWUgWPuh_jbKDUYyU9=w800-h600" ' +
+        'alt="204-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMyUsqkUHR83uQ1DrDf_YAl_Rc0VP2ELOr3gDaP=w800-h600\n" ' +
+        'alt="204-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMaCi6Z5c73YIAeht42RzCoJqcGAVJ21KLnYU3D=w800-h600\n" ' +
+        'alt="204-4" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNOS0fBho9l1eAKfguV19FsEgS2NHKXuXwXcH5J=w800-h600\n" ' +
+        'alt="204-5" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNG_GtTW2QAmZg7LEYvcOFQZhclkpKFTgQkaplp=w800-h600\n" ' +
+        'alt="204-6" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：可可布朗</h3>' +
+        '<p>地址：台北市大安區羅斯福路三段283巷14弄16-1號</p>' +
+        '<p>營業時間：一－日 12:00－20:30</p>' +
+        '<p>目前營業狀態：<span id="status-205"></span></p>' +
+        '<p>電話：02 2366 1204</p>' +
+        '<p>路程：走路12分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOJw44rFi3AjH5xycS_raelJtWHOzBzYH3bImK-=w800-h600\n" ' +
+        'alt="205-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM_RlMh4t252p32gWNQb4EGJSudSESBMNZJL7DH=w800-h600" ' +
+        'alt="205-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNdkF3QOcyZmQnuTq3FcJikhSMaY-xyR9bpfcPE=w800-h600" ' +
+        'alt="205-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN6QKbcNdhtwCZZlRtq1PshzIU8I58LgZXUT68C=w800-h600\n" ' +
+        'alt="205-4" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOndbKDRnpmTc0tAin1VRII71iMC07rc7HrAfrV=w800-h600" ' +
+        'alt="205-5" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('drinkInfo').innerHTML =
+
+        '<h3>店名：春山茶水舖</h3>' +
+        '<p>地址：台北市大安區復興南路二段323號</p>' +
+        '<p>營業時間：一－六 08:00－16:00，日公休</p>' +
+        '<p>目前營業狀態：<span id="status-206"></span></p>' +
+        '<p>電話：02 2737 0198</p>' +
+        '<p>路程：騎車6分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOxAn06Z4ehlrEhUCZMvDvTOr7aCPjvdwUEbOBg=w800-h600\n" ' +
+        'alt="206-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPCDtELWCbNCG3Wu8FckK1UiKYD9R1yKDSjNTOd=w800-h600" ' +
+        'alt="206-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPeIlb_nSgCuhxoKKqrG9vfzaXRKjbpb5-Wm5bM=w800-h600\n" ' +
+        'alt="206-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOdbFMxcf72uIYXmMXuA1VylYRwZgSvfkf0J5LL=w800-h600\n" ' +
+        'alt="206-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：巴伯Q奶 Bubble tea 黑糖珍珠牛奶專賣</h3>' +
+        '<p>地址：台北市中正區羅斯福路三段316巷4號</p>' +
+        '<p>營業時間：一－日 15:30－23:00</p>' +
+        '<p>目前營業狀態：<span id="status-207"></span></p>' +
+        '<p>電話：0921 903 358</p>' +
+        '<p>路程：騎車6分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMYW3ip5mRr9eD3Ekj2TvgloeuO-fBQEmXxSHKS=w800-h600" ' +
+        'alt="207-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPXySCr6f_pRWlnr877Jcc3eEKRTSbPg_fpSO6O=w800-h600\n" ' +
+        'alt="207-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOK5TuGUypdI8TIB_AOuoHKG-OdaKr-e3pHuPFv=w800-h600" ' +
+        'alt="207-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：達文西咖啡</h3>' +
+        '<p>地址：台北市大安區溫州街58巷2號</p>' +
+        '<p>營業時間：一－日 10:30－18.30</p>' +
+        '<p>目前營業狀態：<span id="status-208"></span></p>' +
+        '<p>電話：02 2368 0582</p>' +
+        '<p>路程：騎車6分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPaka4OOoQhnnW8lTkaEg5DhXUqf0Nk6tWH3p--=w800-h600\n" ' +
+        'alt="208-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNFWGgrA7yYH6WHEoyRztreKC9f8yXxZ906SofN=w800-h600\n" ' +
+        'alt="208-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMZ309b7-agZBgMQ2k4AQmpDHC_EXSWXxqMgeT9=w800-h600\n" ' +
+        'alt="208-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP-YZ2B9_iiOZFl_um-RlTwmwX3FWSwc1wdBoHr=w800-h600\n" ' +
+        'alt="208-4" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNW8QSfSrWGzugW5fkAMqYe5zIx-kiSCGHs7sTp=w800-h600" ' +
+        'alt="208-5" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：聞山咖啡</h3>' +
+        '<p>地址：台北市大安區新生南路三段56巷11-1號</p>' +
+        '<p>營業時間：一－日 12:00－20:00</p>' +
+        '<p>目前營業狀態：<span id="status-209"></span></p>' +
+        '<p>電話：02 2365 3239</p>' +
+        '<p>路程：騎車6分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOFicn-oSZT9TjHLV_fZcCFt-hAV_Oo2OhnjMqR=w800-h600\n" ' +
+        'alt="209-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNMT1O9CziQPO01Mv_0zZ1YROMjSf02-Sljq2K3=w800-h600" ' +
+        'alt="209-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN8SESEzzmo-wlw-WMQNoPPUlUa18ncVOgoUnQ4=w800-h600" ' +
+        'alt="209-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPfADZS13bxnyApagdMl_Jok6g0l3znY2m25LJ_=w800-h600\n" ' +
+        'alt="209-4" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO_i-KCYRsczGy31EsvY_Yq9TWClavUsIFJahZ2=w800-h600\n" ' +
+        'alt="209-5" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('nightMarketInfo').innerHTML =
+
+        '<h3>公館夜市</h3>' +
+        '<p>地址：台北市大安區羅斯福路四段90巷</p>' +
+        '<p>營業時間：一－日 15:00－23:45</p>' +
+        '<p>目前營業狀態：<span id="status-210"></span></p>' +
+        '<p>路程：走路12分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOKr1b7rN3a7HDkmdcWle7HhdATU9RT4dz93OOs=w800-h600" ' +
+        'alt="210-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNz9VujzPRFJayvpmrG-Kx3pSLrCQqRRokblL-g=w800-h600" ' +
+        'alt="210-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOLikcBVe7iKwYJDfjKYYp1PuNLuF-EmjwY3ACf=w800-h600" ' +
+        'alt="210-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      const universityId = 2; // 替換成實際的大學 ID
+      const placeIds = [201, 202, 203, 204, 205, 206, 207, 208, 209, 210]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else if (schoolName === '國立中興大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：台中市南區興大路145號';
+      document.getElementById('foodInfo').innerHTML =
+
+        '<h3>店名：麵麵pasta</h3' +
+        '><p>地址：台中市南區仁義街72號</p>' +
+        '<p>營業時間：一－日 11:00－15:00、17:00－20:30</p>' +
+        '<p>目前營業狀態：<span id="status-501"></span></p>' +
+        '<p>電話：04 2287 7766</p>' +
+        '<p>路程：騎車約1分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPOiO47gu1yQyYhD89C1xhJz8Pozv015hPKAvlz=w800-h600" ' +
+        'alt="501-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNPSY5AaCpovlZbroS1VjIMWd8DexJjMKdg-ab7=w800-h600" ' +
+        'alt="501-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMQU0E1NeGmTWkBuZRHAwGlO_5ttbnaMWv6EIlI=w800-h600" ' +
+        'alt="501-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：聞香牛肉麵</h3>' +
+        '<p>地址：台中市南區學府路81號</p>' +
+        '<p>營業時間：一－日 11:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-502"></span></p>' +
+        '<p>電話：04 2287 3011</p>' +
+        '<p>路程：騎車約2分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPJAUlx_AKw7qyXvzFvL9Ci8xtI-mbrGjEMZJcU=w800-h600\n" ' +
+        'alt="502-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMtYR0SMQtdBm69PL8G5HG0hEjObA2ttsUmXVYr=w800-h600\n" ' +
+        'alt="502-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP9OOJlMTFITSyRl_05mjflouqr-ty6bxYYmWWg=w800-h600\n" ' +
+        'alt="502-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM89jiS9QzdMiVuimeOUSmAm4_aQoU1CZHzxd6M=w800-h600\n" ' +
+        'alt="502-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：老舅餃子館</h3>' +
+        '<p>地址：台中市南區興大路145號</p>' +
+        '<p>營業時間：一－五 11:00－14:00、16:30－19:30，六 11:00－14:00</p>' +
+        '<p>目前營業狀態：<span id="status-503"></span></p>' +
+        '<p>電話：04 2285 2520</p>' +
+        '<p>路程：騎車約2分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO_7XDS0lS1u5qdJ9lBBR-LCZ9j_S-0soH8h42M=w800-h600\n" ' +
+        'alt="503-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO154QrQ3dHpNdAqihxOhSzVVZFDfDOS6DjwlJF=w800-h600\n" ' +
+        'alt="503-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNzljcZHqk_kMnV5w0bKPXhQ7SW45xxTlKIb4qp=w800-h600\n" ' +
+        'alt="503-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMN0Wo7RWWlibqVz62ndmUcAOrSWUqxvXZS0obU=w800-h600" ' +
+        'alt="503-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：寶窩咖喱簡餐</h3>' +
+        '<p>地址：台中市南區復新街82號</p>' +
+        '<p>營業時間：一－五 11:30－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-504"></span></p>' +
+        '<p>電話：04 2287 9287</p>' +
+        '<p>路程：騎車約1分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNyWRZ4g41YtuYQcN9PpRxbuA6T1LgiwXCiZJyo=w800-h600\n" ' +
+        'alt="504-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNvwCEM8_YjPD-HUWLJXeNu0v5kur65pp6GTerG=w800-h600\n" ' +
+        'alt="504-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN2rluTzyD12usDN8Kb2i0TCG-ZVuC95dc2ObPi=w800-h600\n" ' +
+        'alt="504-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPvuPNIUXzP_6rxHOeV2qRwbeDCc9RDLnME2ykQ=w800-h600" ' +
+        'alt="504-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：炒飯行家</h3>' +
+        '<p>地址：台中市南區南門路22號</p>' +
+        '<p>營業時間：一－日 11:00－13:30、16:00－20:40</p>' +
+        '<p>目前營業狀態：<span id="status-505"></span></p>' +
+        '<p>電話：04 2285 2802</p>' +
+        '<p>路程：騎車約4分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMokjCMRwxrQaCMzosgdeTGGdPMnQ4t0uhoEFg9=w800-h600\n" ' +
+        'alt="505-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNzQNbJM8F3TIlwWQVe19GSRpfh4CNDa8ooVOf8=w800-h600\n" ' +
+        'alt="505-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMEYDUvV3s9BeCOfmkOJK9nAbW-d5SdOEULrcgE=w800-h600" ' +
+        'alt="505-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOD9vsJTrFvaOzt7ubqkEFDXSP1LXT5wpaovu0G=w800-h600\n" ' +
+        'alt="505-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      document.getElementById('drinkInfo').innerHTML =
+
+        '<h3>店名：迴咖啡 CoffeeBack</h3>' +
+        '<p>地址：台中市南區復新街87巷8號</p>' +
+        '<p>營業時間：一－日 12:30－20:00，三公休</p>' +
+        '<p>目前營業狀態：<span id="status-506"></span></p>' +
+        '<p>電話：0926 812 293</p>' +
+        '<p>路程：騎車約1分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMErXyNd6Tw2ZBNQ_k_1T0igqfQ6tawKOJ_eHHP=w800-h600\n" ' +
+        'alt="506-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN-GyhdHWLbe321nP_hdwOg2uqFQ_gQloCjUA7W=w800-h600\n" ' +
+        'alt="506-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOeFiNr5l64EWav5yjhoZS-tWQ-UP_Ced_EcFvJ=w800-h600\n" ' +
+        'alt="506-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOiME3ocBoHXJMtYyDUGtqinUu3x28d1kFNnn9R=w800-h600\n" ' +
+        'alt="506-4" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN1eRC17uVHouhI2ajlEmVoXTROlEqzS9lo_QuL=w800-h600\n" ' +
+        'alt="506-5" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO7ZsnRFRtqzWDk09nO_bbjQTYWyDuL6BIq7PTO=w800-h600\n" ' +
+        'alt="506-6" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：MU咖啡輕食小賣所</h3>' +
+        '<p>地址：台中市南區學區府路82號</p>' +
+        '<p>營業時間：二－日 11:30－18:30</p>' +
+        '<p>目前營業狀態：<span id="status-507"></span></p>' +
+        '<p>電話：無</p>' +
+        '<p>路程：騎車約2分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNYZfn3YKSUgjmjdodOT4Hb-E-I9oaQLHWgHCTG=w800-h600\n" ' +
+        'alt="507-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNA9BFHRiahUXVWzjoPTM-zOfXvUyV7kHWFTrib=w800-h600\n" ' +
+        'alt="507-2" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：35巷咖啡</h3>' +
+        '<p>地址：台中市南區興大路37號巷內35巷4號</p>' +
+        '<p>營業時間：二－日 13:00－18:00</p>' +
+        '<p>目前營業狀態：<span id="status-508"></span></p>' +
+        '<p>電話：0921 323 198</p>' +
+        '<p>路程：騎車約3分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOm9ciOUuaD8kyfHKQtEuqR0Ux5dL5xG7gXckhA=w800-h600" ' +
+        'alt="508-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP1_pGFgz4jjp_7ZzKTMtVzQd7wNM6XFzhL-IEb=w800-h600" ' +
+        'alt="508-2" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      document.getElementById('nightMarketInfo').innerHTML =
+
+        '<h3>忠孝路觀光夜市</h3>' +
+        '<p>地址：台中市南區忠孝路194巷</p>' +
+        '<p>營業時間：一－日 15:00－23:00</p>' +
+        '<p>目前營業狀態：<span id="status-509"></span></p>' +
+        '<p>路程：騎車約4分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNlHLYnEKBfCSdnaQOOH6C1kISAAGm3ItIxlXET=w800-h600" ' +
+        'alt="509-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMLPLITYeWVr7Le8lDPz1FQqKvbm752r36DRQBw=w800-h600" ' +
+        'alt="509-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMZ6nxMvJ2tEohjWS3EonGIqpdtb7t10CCYOnsZ=w800-h600" ' +
+        'alt="509-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM4H6Zd-N2R5hkFJId2hSHJrnL5rskem17Pj8Bn=w800-h600" ' +
+        'alt="509-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      const universityId = 5; // 替換成實際的大學 ID
+      const placeIds = [501, 502, 503, 504, 505, 506, 507, 508, 509]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else if (schoolName === '東海大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：台中市西屯區台灣大道四段1727號';
+      document.getElementById('foodInfo').innerHTML =
+
+        '<h3>店名：遇見MASA日式定食</h3>' +
+        '<p>地址：台中市龍井區新興路15巷3號</p>' +
+        '<p>營業時間：一－日 17:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-1001"></span></p>' +
+        '<p>電話：0955 018 232</p>' +
+        '<p>路程：騎車約8分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNzrPjMgRrNNX1NZHjXarK4Nf4D-VcYGlaFKegC=w800-h600-k-no" ' +
+        'alt="1001-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPkyRqdRk8Keltmm97lgsAE8-LkznqCdvG53X1f=w800-h600-k-no\n" ' +
+        'alt="1001-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNQDd53537ETiY0ylrlEPw5ynf4xzRLjFO2aEdc=w800-h600-k-no" ' +
+        'alt="1001-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPzuZMYftR_lPl93sxmoU6330LtEW-Zdms6juQk=w800-h600-k-no" ' +
+        'alt="1001-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：來來美食小吃店</h3>' +
+        '<p>地址：台中市沙鹿區</p>' +
+        '<p>營業時間：一－五 04:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-1002"></span></p>' +
+        '<p>電話：0937 990 509</p>' +
+        '<p>路程：騎車約12分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP4FvppXTEXBVbh71aKVbd72CErzb6_sQJuW8nr=w800-h600-k-no" ' +
+        'alt="1002-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNmqhb8_wKCWjY4pfbe2FUa-1pKQe0TKVcTz7OT=w800-h600-k-no" ' +
+        'alt="1002-2" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：桂伃泰式河粉</h3>' +
+        '<p>地址：台中市龍井區遊園南路297號之15號</p>' +
+        '<p>營業時間：一－五 11:30－19:00</p>' +
+        '<p>目前營業狀態：<span id="status-1003"></span></p>' +
+        '<p>電話：0913 357 399</p>' +
+        '<p>路程：騎車約8分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNKn534wtHOnVGpEzQWy8ZjSDfFDtQA3LehrUIz=w800-h600-k-no\n" ' +
+        'alt="1003-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMQ7x6zylUPCS6WmEEzIbfhr15NYLqju8xFTQrS=w800-h600-k-no\n" ' +
+        'alt="1003-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOdZk1lB7R3Y-kwGk2xuppHHTpxm5gSINKDzGEz=w800-h600-k-no\n" ' +
+        'alt="1003-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：東海何媽媽冰店</h3>' +
+        '<p>地址：台中市龍井區臺灣大道五段3巷6弄32號</p>' +
+        '<p>營業時間：一－六 02:00－20:00</p>' +
+        '<p>目前營業狀態：<span id="status-1004"></span></p>' +
+        '<p>電話：04 2632 8855</p>' +
+        '<p>路程：騎車約7分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMDvlOfCA3ACrxiNghCiP2Zp-8mHDtLO2LoI2Dj"' +
+        'alt="1004-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOfOP1gNrk8bRZIZmDGqYts3dUDWnW-RDRzKN-H\n"' +
+        'alt="1004-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNQ_taThU_R59KV8Tmk-l1CIai1CaUXCSWC9fs"' +
+        'alt="1004-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPVmtALzd52-TsUzyinnArTfQY6uDQjP3Fuz9uZ"' +
+        'alt="1004-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：巧食雞串燒啤酒屋（東海店）</h3>' +
+        '<p>地址：台中市龍井區新興路40-21號</p>' +
+        '<p>營業時間：一－日 18:00～00:30</p>' +
+        '<p>目前營業狀態：<span id="status-1005"></span></p>' +
+        '<p>電話：0906 965 210</p>' +
+        '<p>路程：騎車約9分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOvM93SMEz-DSMBcNtWPNgGQbn1jYp_zcZyxyND=w800-h600-k-no\n" ' +
+        'alt="1005-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOROAPJhOhXCFJpmcxOhL9iE6_5dtiOHoQuPyGR=w800-h600-k-no\n" ' +
+        'alt="1005-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOeocG5CNhDaK5zq4UbThTUvBAel5Qv1VX89hk9=w800-h600-k-no\n" ' +
+        'alt="1005-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM0XGknRWK-pJuplpyDNS-5llD97FIJyCDZLIwf=w800-h600-k-no\n" ' +
+        'alt="1005-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      document.getElementById('drinkInfo').innerHTML =
+
+        '<h3>店名：1980果汁健康專賣店</h3>' +
+        '<p>地址：台中市龍井區新興路22巷1弄2-7號</p>' +
+        '<p>營業時間：一－五 中午－19:00、六－日 中午－17:00</p>' +
+        '<p>目前營業狀態：<span id="status-1006"></span></p>' +
+        '<p>電話：04 2652 3817</p>' +
+        '<p>路程：騎車約8分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPY0MCdxb-5PsmNfivaULkEL0A1o8e2xQRSZhYM"' +
+        'alt="1006-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNN6HQ0CvxKnoJSm-B5p4I919tjCEO2CIOjlQ58"' +
+        'alt="1006-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMNOcTWKt_ynGrowjvA6bFKMzdmpwMhJIS_S9cl"' +
+        'alt="1006-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMDnW4tqyutVJI14CDceSDISozJVdpbCFwT0eFV"' +
+        'alt="1006-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：草根豐味綠豆沙牛奶專門店(東海店)</h3>' +
+        '<p>地址：台中市龍井區新興路3-1號</p>' +
+        '<p>營業時間：一－日 10:00－22:00</p>' +
+        '<p>目前營業狀態：<span id="status-1007"></span></p>' +
+        '<p>電話：04 2632 7997</p>' +
+        '<p>路程：騎車約8分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOcN6QIbOcCtSZf_ch5WgsJ7T7tCJOEjGWbBXJh"' +
+        'alt="1007-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM1LOrG_fP8bEHThxikiOnTjQt_cALYHKFw2dpX\n"' +
+        'alt="1007-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPl5toqGOWh7NNUDS0Y-PBmyybin52AJIAZMkGl"' +
+        'alt="1007-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：GOOD CIRCLE COFFEE 木和咖啡</h3>' +
+        '<p>地址：台中市龍井區新興路9巷10號</p>' +
+        '<p>營業時間：一－三 12:30－22:00、五－日 12:30－19:00</p>' +
+        '<p>目前營業狀態：<span id="status-1008"></span></p>' +
+        '<p>電話：0975 575 010</p>' +
+        '<p>路程：騎車約8分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMeyoLCoPLlKFw26CyKYuuNtePXF-t-bXM6K9bJ=w800-h600\n" ' +
+        'alt="1008-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO29gYgKwHsFLMsBGRLxvMXJtbZpQkvMtTIwAsb=w800-h600\n" ' +
+        'alt="1008-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPVy2YIY-kjX39WNNzQllpbYmiq1LEdjnSkJTS5=w800-h600\n" ' +
+        'alt="1008-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      document.getElementById('nightMarketInfo').innerHTML =
+
+        '<h3>東海夜市</h3>' +
+        '<p>地址：台中市龍井區新興路9號</p>' +
+        '<p>營業時間：一－日 24小時</p>' +
+        '<p>目前營業狀態：<span id="status-1009"></span></p>' +
+        '<p>路程：騎車約8分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOZSUQTPvsgIfD5FbhvC1Iv_UqkjWVZHpDBUL4j=w800-h600" ' +
+        'alt="1009-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPnqodk1PxYBE-LeEOaTzUCnU38dmPtVdEfmhgr=w800-h600" ' +
+        'alt="1009-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPccT6Xh04uvWm9QXzLh0RUOpJ7Zu2KNrAYosWD=w800-h600" ' +
+        'alt="1009-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      const universityId = 10; // 替換成實際的大學 ID
+      const placeIds = [1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else if (schoolName === '國立中山大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：高雄市鼓山區蓮海路70號';
+      document.getElementById('foodInfo').innerHTML =
+
+        '<h3>店名：阿雪小吃部</h3>' +
+        '<p>地址：高雄市鼓山區延平街8號</p>' +
+        '<p>營業時間：一－五、日 11:00－14:30，16:00－20:30</p>' +
+        '<p>目前營業狀態：<span id="status-1101"></span></p>' +
+        '<p>電話：07 521 5670</p>' +
+        '<p>路程：騎車約6分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO7ywSNn9cZk3Rn1vJK-am09AvPcgBt_1rJB7en=w800-h600-k-no" ' +
+        'alt="1101-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMFo0q5Df-bV0BJZJpRBgjug0uvheLQQ9rvtfmh=w800-h600-k-no" ' +
+        'alt="1101-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOGx3gblQz66GLoegEEh32umiXyAxY7DVkcwnZZ=w800-h600-k-no" ' +
+        'alt="1101-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：元福燒肉飯</h3>' +
+        '<p>地址：高雄市鼓山區濱海一路88號</p>' +
+        '<p>營業時間：一－五 11:00－19:30</p>' +
+        '<p>目前營業狀態：<span id="status-1102"></span></p>' +
+        '<p>電話：07 531 4157</p>' +
+        '<p>路程：騎車約7分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOONFLyl6lz8ntcVum-HFfEIMFg6MBGs5BPpVEC=w800-h600-k-no\n" ' +
+        'alt="1102-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNVGERd250ZMF-STcu427OmaEyCSC0eqGSyKQ-o=w800-h600-k-no\n" ' +
+        'alt="1102-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOuyDZhlNFR3M9WhA9UScAF7F3bJW3myd9_n6Ax=w800-h600-k-no\n" ' +
+        'alt="1102-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：北港蔡三代筒仔米糕</h3>' +
+        '<p>地址：高雄市鹽埕區河西路167號</p>' +
+        '<p>營業時間：一－二、四－日 13:30－21:30</p>' +
+        '<p>目前營業狀態：<span id="status-1103"></span></p>' +
+        '<p>電話：07 551 7443</p>' +
+        '<p>路程：騎車約12分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNwxhQgSLqPdCA6xhQBrY1JvLhQrmobL24ECiDW=w800-h600-k-no" ' +
+        'alt="1103-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO5VSAKsPxkvJE2TQ0tG2wxH0iG81tkiasDJyYE=w800-h600-k-no" ' +
+        'alt="1103-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOtkwKfpOFa0WbljG0K-xKtTDz3wCjLznYE55Dd=w800-h600" ' +
+        'alt="1103-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：媽媽的手藝 鴨肉飯麵</h3>' +
+        '<p>地址：高雄市鼓山區鼓元街101號</p>' +
+        '<p>營業時間：一－日 11:00－15:00，16:00－19:30，三、六公休</p>' +
+        '<p>目前營業狀態：<span id="status-1104"></span></p>' +
+        '<p>電話：0932 858 910</p>' +
+        '<p>路程：騎車約6分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMfcLd9tIAOk_57FON40VZAEH1GUGHJNox9Wk1C=w800-h600-k-no" ' +
+        'alt="1104-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPUwkNqfKclH0x0kbJfXnAdtBV9GOO1-2EeGefd=w800-h600-k-no" ' +
+        'alt="1104-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO1myKPEY4E3_96r8BEdK3ScqsuYDsEy9-WfTGr=w800-h600-k-no" ' +
+        'alt="1104-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPC8TXdfXxYvRijO688WvDwUB-ETMUz9gTT4Ld2=w800-h600-k-no\n" ' +
+        'alt="1104-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('drinkInfo').innerHTML =
+
+        '<h3>店名：御典茶</h3>' +
+        '<p>地址：高雄市鼓山區鼓元街38號</p>' +
+        '<p>營業時間：一－日 11:00－22:00</p>' +
+        '<p>目前營業狀態：<span id="status-1105"></span></p>' +
+        '<p>電話：07 531 6618</p>' +
+        '<p>路程：騎車約8分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMMC0_bhAN1ySczid6sMV6jCm4dF5XvKuV-KfSZ=w800-h600-k-no\n" ' +
+        'alt="1105-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMxM6TqEhnWv8cEWf7p_Zy2Z_9yAgeBtRCvjdR2=w800-h600-k-no" ' +
+        'alt="1105-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMsGgnNf8SI3uYi-IXkVeLorYf7BXsI_zdxRGXf=w800-h600" ' +
+        'alt="1105-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：樂魚酸奶</h3>' +
+        '<p>地址：高雄市鼓山區鼓波街46-4號</p>' +
+        '<p>營業時間：二－日 11:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-1106"></span></p>' +
+        '<p>電話：0988 011 883</p>' +
+        '<p>路程：騎車約6分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOfVYVIra45DvKMEyeg4wk4FtsS_ivqUkFKSxpH=w800-h600" ' +
+        'alt="1106-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNMR7pDAN_kbXb9urpjoEtUe9OkTrXYmjTFMdzJ=w800-h600" ' +
+        'alt="1106-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNR4HAtw25tGa2mRCThubmccBz_8pMsMehXEkgV=w800-h600" ' +
+        'alt="1106-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPLuNOQR9DiX_veMRbVwe5B7OX9pXcZ4Q2XK89X=w800-h600-k-no\n" ' +
+        'alt="1106-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：Shoreline Coffee & Roaster｜海岸線咖啡_西灣店</h3>' +
+        '<p>地址：高雄市鼓山區蓮海路90號2樓</p>' +
+        '<p>營業時間：一－日 11:00－18:00</p>' +
+        '<p>目前營業狀態：<span id="status-1107"></span></p>' +
+        '<p>電話：07 525 001</p>' +
+        '<p>路程：步行約2分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM5JsIJSj2Q4Gd0ddtyp4VBNcOgiipbX4zMmcYW=w800-h600" ' +
+        'alt="1107-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNPAeMRLHARZEhJRUvZJ7gGE84eh7NNP_UBcDYh=w800-h800" ' +
+        'alt="1107-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOl9VTYqV9VH2v0DoWAiZwIxLK1sZyFb0mB8cWW=w800-h600" ' +
+        'alt="1107-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN1kZDrYKcXutEBaAxGQ4i36b1-y1Mz6PP-u1_o=w800-h600" ' +
+        'alt="1107-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('nightMarketInfo').innerHTML =
+
+        '<h3>鹽埕埔(駁二)小夜市</h3>' +
+        '<p>地址：高雄市鹽埕區建國四路57號</p>' +
+        '<p>營業時間：六 17:30－22:30</p>' +
+        '<p>目前營業狀態：<span id="status-1108"></span></p>' +
+        '<p>路程：騎車約10分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMhRsCLUSv9OHEZPDb--rgFotTXb_FxzPEF3qYl=w800-h600-k-no" ' +
+        'alt="1108-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOiyqQFaAiR_U2-ea9d-6GeDIhK0fj1PEICCUt-=w800-h600-k-no" ' +
+        'alt="1108-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNL7ml3ZO372qI0P_TxE49hqJp9PzOPrOSwBYyR=w800-h800" ' +
+        'alt="1108-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      const universityId = 11; // 替換成實際的大學 ID
+      const placeIds = [1101, 1102, 1103, 1104, 1105, 1106, 1107, 1108]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else if (schoolName === '國立中正大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：嘉義縣民雄鄉大學路一段168號';
+      document.getElementById('foodInfo').innerHTML =
+
+        '<h3>店名：阮氏料理</h3>' +
+        '<p>地址：嘉義縣民雄鄉復興路87號</p>' +
+        '<p>營業時間：一－日 10:30－14:00，16:30－19:30，六公休</p>' +
+        '<p>目前營業狀態：<span id="status-1201"></span></p>' +
+        '<p>電話：05 226 2030</p>' +
+        '<p>路程：騎車約7分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOOFw62MPQDujc-zmANZ0sK40wqDMJNxxED1yC9=w800-h600\n" ' +
+        'alt="1201-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMiTloiMWNK5J484Mzg4lu7tdWvAHCm3lPJj1Sx=w800-h600\n" ' +
+        'alt="1201-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMS_rNzcEquYc0NlQt09nrojJ0EPg-k-5-1So4J=w800-h600\n" ' +
+        'alt="1201-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOLFkCAFMnPOAM4APogI33kzmd4opQiNVX7XPN1=w800-h600\n" ' +
+        'alt="1201-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：松阪家日式料理</h3>' +
+        '<p>地址：嘉義縣民雄鄉保生街77號</p>' +
+        '<p>營業時間：三－日 11:00－13:30，17:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-1202"></span></p>' +
+        '<p>電話：05 206 2177</p>' +
+        '<p>路程：騎車約10分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPT1M7f1U7J4R-dGfooT_zriQ7t63LYVHij2N8=w800-h600\n" ' +
+        'alt="1202-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMlrZneqq_yi3MJcB7RaOipLcXC3iP6XiIyzSFF=w800-h600\n" ' +
+        'alt="1202-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNkbeUVFmUk7YuLLneti8K6I5B7ILTjmpnXFqmr=w800-h600\n" ' +
+        'alt="1202-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNOAz4YX7u4kfgaLelwJ8h9OiPBUWyn6zlhP10K=w800-h600\n" ' +
+        'alt="1202-4" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPFgF--dQfWazBAyEwkFFBvZMI05YfxLYDMA9_p=w800-h600\n" ' +
+        'alt="1202-5" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：龍座鐵板燒</h3>' +
+        '<p>地址：嘉義縣民雄鄉保生街275號</p>' +
+        '<p>營業時間：一－日 11:00－14:00，16:30－21:30</p>' +
+        '<p>目前營業狀態：<span id="status-1203"></span></p>' +
+        '<p>電話：05 206 5288</p>' +
+        '<p>路程：騎車約12分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNyJ0Hb-9JVPlkPMMAkoqxYiB2Qw1fZQmUrEiln=w800-h600\n" ' +
+        'alt="1203-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPeTdvXX1NS0B4pVVASOkCFC0ny2BoenrlmBGr7=w800-h600\n" ' +
+        'alt="1203-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMT-4kNtHlcIexoXhCMsrS3ZbFWGbLP01GGUHwr=w800-h600\n" ' +
+        'alt="1203-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMHb22vXMN0ZkPQcFRxf46v6Hj5RKPJDY7pv3E=w800-h600\n" ' +
+        'alt="1203-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：牛筋伯爵</h3>' +
+        '<p>地址：嘉義縣民雄鄉神農路73號</p>' +
+        '<p>營業時間：二－日 11:00－14:00，17:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-1204"></span></p>' +
+        '<p>電話：05 272 3039</p>' +
+        '<p>路程：走路5分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOmII42NvXWUjaQLfgT8EPbqozjE1djQ5zx6v9e=w800-h600\n" ' +
+        'alt="1204-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMnkeUBqBLnzvWTeh73JQ9jkPEynQxvPX9hx6h7=w800-h600\n" ' +
+        'alt="1204-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNDBXRm2K_1us5nJXLzV33SAH7ftZ9vQ62NYz8X=w800-h600" ' +
+        'alt="1204-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPq7miwnch3SpS3_AkUmzTjRV9KSxH5lRKZ596F=w800-h600\n" ' +
+        'alt="1204-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：花亭壽司專賣店</h3>' +
+        '<p>地址：嘉義縣民雄鄉保生街138號</p>' +
+        '<p>營業時間：一－日 11:00－14:30，16:30－20:30，二公休</p>' +
+        '<p>目前營業狀態：<span id="status-1205"></span></p>' +
+        '<p>電話：05 206 3935</p>' +
+        '<p>路程：騎車約10分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPVn2yKB5NQmaENXIbbYX59IIIR53WQxvR1Tj3B=w800-h600\n" ' +
+        'alt="1205-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOwgKTk3D_86_-fS3QSgWKKbiIQZ2EBSvNkYlb6=w800-h600\n" ' +
+        'alt="1205-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOtuE8OZBKbs-KJUCGJDAF-aYwIe6f5c1vHdmg=w800-h600\n" ' +
+        'alt="1205-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMgMTCL9W6cailSBcjPPsKbhB4_-n2gTbY-TI3O=w800-h600\n" ' +
+        'alt="1205-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('drinkInfo').innerHTML =
+
+        '<h3>店名：Long Stay現泡茶</h3>' +
+        '<p>地址：嘉義縣民雄鄉村東榮路42-1號</p>' +
+        '<p>營業時間：一－日 10:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-1206"></span></p>' +
+        '<p>電話：05 206 2313</p>' +
+        '<p>路程：騎車約8分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM7SxxVePMEiT5KEkW2jy7Z_DDkXlEhZRmcet1J=w800-h600" ' +
+        'alt="1206-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOhUXF0MGg5X3ORTfXhR6iitZJxQZmIPim6AX3q=w800-h600\n" ' +
+        'alt="1206-2" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：慢靈魂</h3>' +
+        '<p>地址：嘉義縣民雄鄉復興街93號</p>' +
+        '<p>營業時間：一－日 10:00－19:00，二公休</p>' +
+        '<p>目前營業狀態：<span id="status-1207"></span></p>' +
+        '<p>電話：05 226 6832</p>' +
+        '<p>路程：騎車約7分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOjctvhcsapu0Nrt2eqpM63SARM6pqtSsWxjy-Y=w800-h600" ' +
+        'alt="1207-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMgwC8DTqzC2w5TQh6pflFiNA7VfscnQRS7DwQR=w800-h600" ' +
+        'alt="1207-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN0w7rZqQN4fQ9BCGgOUH6LmSCcHnyoX3n26qg9=w800-h600" ' +
+        'alt="1207-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：Ink Hall.隱客廳</h3>' +
+        '<p>地址：嘉義縣民雄鄉神農一街20號</p>' +
+        '<p>營業時間：一－日 11:00－00:00 (粉專沒有公告就是沒有休)</p>' +
+        '<p>目前營業狀態：<span id="status-1208"></span></p>' +
+        '<p>電話：0915 156 830</p>' +
+        '<p>路程：走路4分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNVHcLITDnfMVtbDFU0AmONWfcsDznpnYpwhwou=w800-h600-k-no\n" ' +
+        'alt="1208-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO8ieCHUoN2qPDBT6s9UOwPyhhiFFT5EPza65NP=w800-h600-k-no\n" ' +
+        'alt="1208-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN4SZZAt6OLC8sJ9rk8IUQMelqSXYUWDzhuLCh0=w800-h600" ' +
+        'alt="1208-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：雀拾 Cheers cafe</h3>' +
+        '<p>地址：嘉義縣民雄鄉神農路57號</p>' +
+        '<p>營業時間：二－日 13:00－18:00</p>' +
+        '<p>目前營業狀態：<span id="status-1209"></span></p>' +
+        '<p>電話：0968 776 679</p>' +
+        '<p>路程：走路約7分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMSC4NYoUrvB5vvUw2ujbgMC3Sj7tJf2DWUiHHz=w800-h800" ' +
+        'alt="1209-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOmtobrHyMdIbG8Rdn6qA2bLm7PM0D17dsGv7D9=w800-h450" ' +
+        'alt="1209-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNXzCi1uVnLd9nU0B62X5LVvGUSFVyk40ktkRzc=w800-h600-k-no\n" ' +
+        'alt="1209-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('nightMarketInfo').innerHTML =
+
+        '<h3>文化路夜市</h3>' +
+        '<p>地址：嘉義市西區文化路</p>' +
+        '<p>營業時間：一－日 15:30－23:00</p>' +
+        '<p>目前營業狀態：<span id="status-1210"></span></p>' +
+        '<p>路程：騎車約20分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNVdNL1zq2W0Bs3dbLEIBFZKBog6ZIpbXo2OLi9=w800-h600-k-no\n" ' +
+        'alt="1210-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipONLaV8wmhv2T227H-ObyRGaq_hwwVNJLuuxzMY=w800-h600-k-no\n" ' +
+        'alt="1210-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNqCfso92z7lt54rCCdF8XPkz9JbcozVccKq1zW=w800-h450" ' +
+        'alt="1210-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>嘉樂福夜市</h3>' +
+        '<p>地址：嘉義市西區博愛路二段467號</p>' +
+        '<p>營業時間：四－日 18:00－00:00</p>' +
+        '<p>目前營業狀態：<span id="status-1211"></span></p>' +
+        '<p>路程：騎車約21分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMCb8aVbTOIzRbecqhARTGlpThePPLXIpQp9QXR=w800-h600-k-no\n" ' +
+        'alt="1211-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPAD_u42CLgb_KQk0DEKgL9hgtFyMVj5sjDyu9V=w800-h600" ' +
+        'alt="1211-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPT3Q3Vp6kNIxbpg3w6Jn19H0BOuMVrMFjEZgB0=w800-h600-k-no\n" ' +
+        'alt="1211-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPv8455vm3gSIZe3lCaa6y3qWql-nvTnEMLSP8=w800-h600-k-no" ' +
+        'alt="1211-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      const universityId = 12; // 替換成實際的大學 ID
+      const placeIds = [1201, 1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1210, 1211]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else if (schoolName === '國立成功大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：台南市東區大學路1號';
+      document.getElementById('foodInfo').innerHTML =
+
+        '<h3>店名：紅樓小館</h3>' +
+        '<p>地址：台南市東區勝利路165巷11號</p>' +
+        '<p>營業時間：二－日 10:30－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-101"></span></p>' +
+        '<p>電話：06 208 6815</p>' +
+        '<p>路程：騎車約3分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPP5rIaTZKvZOOL5I_t1KcMb6i4-JkbvP7oaZs-=w800-h600-k-no" ' +
+        'alt="101-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMn9-0Er57G93X8nFotD8jhWRmhLIqkMfoSjw4J=w800-h600-k-no" ' +
+        'alt="101-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNWDOkF5d_pJlo6ps2G1cUFPFeNXb23k9G5ZL8S=w800-h600-k-no\n" ' +
+        'alt="101-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO5axWW_OFbMfkfeYBe2djE3UT8xkd8jjMdDpA=w800-h600-k-no\n" ' +
+        'alt="101-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：大醬川麵館</h3>' +
+        '<p>地址：台南市東區育樂街35之28號</p>' +
+        '<p>營業時間：一－日 11:00－14:00、16:30－20:30，六公休</p>' +
+        '<p>目前營業狀態：<span id="status-102"></span></p>' +
+        '<p>電話：06 208 7161</p>' +
+        '<p>路程：騎車約3分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPCN2pNssW6Yaqb7z406s_xEqc1J7e2IpMqPaun=w800-h600-k-no\n" ' +
+        'alt="102-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMJo17OIXrDnJhG1KYs-fH0quXhyRyuk5DGoVKm=w800-h600-k-no\n" ' +
+        'alt="102-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOscKb4hXZ8YMInIEYvXbOGZFckmD_l1TbNAzT6=w800-h600-k-no\n" ' +
+        'alt="102-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN7oEuBYwUOGUF59EOiWVBrynYZJhAxP38bf5gy=w800-h600-k-no\n" ' +
+        'alt="102-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：老友小吃</h3>' +
+        '<p>地址：台南市北區勝利路268號</p>' +
+        '<p>營業時間：一－日 10:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-103"></span></p>' +
+        '<p>電話：06 235 7564</p>' +
+        '<p>路程：騎車約5分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMU2t6RCmtetmYgVm1TNt5-wK1l3PVu1Q84uu10=w800-h600-k-no" ' +
+        'alt="103-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNW3NCZWUci5efCK7urTJvMsRZNBCL66ilAoiZr=w800-h600-k-no" ' +
+        'alt="103-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPWO-RsbWrjpS1FTz_dTV03ADBKIUURz6k9zKiO=w800-h600-k-no" ' +
+        'alt="103-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPH7MlnLoMaPhzVmcLOnsgpuOuJ8aGCjFXczXZr=w800-h600-k-no" ' +
+        'alt="103-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：大口咬定</h3>' +
+        '<p>地址：台南市東區育樂街163號</p>' +
+        '<p>營業時間：二－日 11:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-104"></span></p>' +
+        '<p>電話：0956 360 700</p>' +
+        '<p>路程：騎車約5分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOHTXGxj2GiGsn3prVSKFH7xFoYTicGeZ1EpRQB=w800-h600-k-no\n" ' +
+        'alt="104-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO9KeC8XlGBI-OIB2bup4yb2fjS-MKYHXn4n8Je=w800-h600-k-no\n" ' +
+        'alt="104-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOZ8KnZZ6Z3k9jTUVKOOpDxkFEEood72K2xQ9GL=w800-h600-k-no\n" ' +
+        'alt="104-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNEDU_TNmC5N9e2D0cWsRh-xpf1J42rEDvvij4=w800-h500" ' +
+        'alt="104-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：廣越美食</h3>' +
+        '<p>地址：台南市北區長榮路四段108號</p>' +
+        '<p>營業時間：一－五 11:00－15:00，16:30－19:30，六 11:00－15:00</p>' +
+        '<p>目前營業狀態：<span id="status-105"></span></p>' +
+        '<p>電話：06 208 7799</p>' +
+        '<p>路程：騎車約5分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOhW5F-3tCinSbpHS82VeVwOtHiBoaCIClfREyo=w800-h600-k-no\n" ' +
+        'alt="105-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNijzBFJbu8H-rYFf20o8gco6RWDRXBpfTLn_20=w800-h600-k-no\n" ' +
+        'alt="105-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPN0iB0gb6HWe6a45bmEgLK4YDKWXj-GpvrN0DA=w800-h600-k-no" ' +
+        'alt="105-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPIzaPCECYoBCX_kSdxxT4Q2k1ZDXCTrT6UXCY=w800-h600-k-no" ' +
+        'alt="105-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('drinkInfo').innerHTML =
+
+        '<h3>店名：穴居咖啡</h3>' +
+        '<p>地址：台南市東區育樂街152號</p>' +
+        '<p>營業時間：一、四、五、六、日 12:00－18:00</p>' +
+        '<p>目前營業狀態：<span id="status-106"></span></p>' +
+        '<p>電話：無</p>' +
+        '<p>路程：騎車約4分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN98rl1RKQ-TV6PwZ0zJxPaZaVBTwFJ5V2WtHuF=w800-h600" ' +
+        'alt="106-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMlsIFQsdLW7-tIleW1qkIkpa3trrGmb8lrNfDb=w800-h400" ' +
+        'alt="106-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP9IHTWcVSTeyKO_5hisfSV7ZIcYtYyo97j-BYo=w800-h600" ' +
+        'alt="106-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipODDxmHsWcjlzOHixd_SKuZzfgJFhFGtUcU4bkP=w800-h800" ' +
+        'alt="106-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：a Room房間咖啡</h3>' +
+        '<p>地址：台南市東區長榮路一段234巷17號</p>' +
+        '<p>營業時間：一、五、六、日 10:00－17:30</p>' +
+        '<p>目前營業狀態：<span id="status-107"></span></p>' +
+        '<p>電話：06 209 7979</p>' +
+        '<p>路程：騎車約9分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMiZJS5jOfk9R7lApuXoZRlfvYbkCKilHMRir3k=w800-h600" ' +
+        'alt="107-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMoytMv2HTDE-xidBK1oDByq7ACcdtNNu9ZUxI=w800-h600" ' +
+        'alt="107-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOir7of9cho6aNmfxmp_GQn8925FWu-uGKhsXxx=w800-h600" ' +
+        'alt="107-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPL6icUo1t73Ba8aNjI7WOyLcGRzMCHYx4FM3LZ=w800-h800" ' +
+        'alt="107-4" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMpEwnlTIS-F7Aj-sWBcc7knCKeqAmaxvgUHDc=w800-h600" ' +
+        'alt="107-5" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP4Q4mi1hwIJtB6AddjXdhQ8ksWevWJ0RTS9EEt=w800-h600" ' +
+        'alt="107-6" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMuh8-FFmU8UjhpR1OSaCMnCyBRW7jMDm3AckSJ=w800-h600-k-no" ' +
+        'alt="107-7" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：KOEMON</h3>' +
+        '<p>地址：台南市北區北門路二段15巷17號</p>' +
+        '<p>營業時間：一－日 11:30－18:00，四公休</p>' +
+        '<p>目前營業狀態：<span id="status-108"></span></p>' +
+        '<p>電話：06 222 8587</p>' +
+        '<p>路程：騎車約4分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMOSl0S4xRDegOMj_D6FA25PMhqCL_w3Y3Svtcz=w800-h600" ' +
+        'alt="108-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO_MiaIgIbgsFjM1iH4H9WAoAb_J2t8Y7jv-wFo=w800-h600-k-no" ' +
+        'alt="108-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMcpyaPEpuU8Qqw8tsXaStD9q-ndVjy6OX0U55L=w800-h600" ' +
+        'alt="108-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMcJIKLZkHVV2OdMsYZd-XZmnPnFJKiU3mpSdWS=w800-h800" ' +
+        'alt="108-4" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNj9znz5XfwK-sLg4nWkatB5fhXerum0-rLT8JR=w800-h600" ' +
+        'alt="108-5" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM9rx7Na3sM8XA2Fmaz0X0gfOkDqQDcDYWhRX83=w800-h600-k-no" ' +
+        'alt="108-6" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('nightMarketInfo').innerHTML =
+
+        '<h3>大東夜市</h3>' +
+        '<p>地址：台南市東區森林路一段276號</p>' +
+        '<p>營業時間：一、二、五 18:00－01:00</p>' +
+        '<p>目前營業狀態：<span id="status-109"></span></p>' +
+        '<p>路程：騎車約10分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO0pLk7quSn9HlRErpSjWN-pKFDPE-VqpSeym2D=w800-h600-k-no" ' +
+        'alt="109-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMp7li5N6NYXYAohXJCx001Un8urSnLaflIJLFQ=w800-h600-k-no" ' +
+        'alt="109-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMknKEjbGV4WwTTquSK3wvPoh4ryrtmxuByzp9z=w800-h600" ' +
+        'alt="109-3" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      const universityId = 1; // 替換成實際的大學 ID
+      const placeIds = [101, 102, 103, 104, 105, 106, 107, 108, 109]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else if (schoolName === '國立東華大學') {
+      document.getElementById('schoolAddress').textContent =
+        '地址：花蓮縣壽豐鄉大學路二段1號';
+      document.getElementById('foodInfo').innerHTML =
+
+        '<h3>店名：老師傅</h3>' +
+        '<p>地址：花蓮縣壽豐鄉中正路57號</p>' +
+        '<p>營業時間：一－日 11:30－14:00、16:30－20:30</p>' +
+        '<p>目前營業狀態：<span id="status-401"></span></p>' +
+        '<p>電話：0909 244 722</p>' +
+        '<p>路程：騎車約6分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNV-t2OIZkcP-3XxrW29_BQ7umvtQbJqp9MqIc6=w800-h600-k-no" ' +
+        'alt="401-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPBo17tEAyHAfxiGwfyoyhHhyo4ndu41JSqgf3s=w800-h400" ' +
+        'alt="401-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNpekd5W78MUOZ7BTmRIAaYkljrgQK7ZEDjVh3-=w800-h600-k-no" ' +
+        'alt="401-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNLddlBinWiMjVqWP-m09Ib3AQvhsBhUasmgfqE=w800-h600" ' +
+        'alt="401-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：這藝鍋</h3>' +
+        '<p>地址：花蓮縣壽豐鄉中正路203號</p>' +
+        '<p>營業時間：一－日 11:30－14:00、17:00－21:00</p>' +
+        '<p>目前營業狀態：<span id="status-402"></span></p>' +
+        '<p>電話：03 866 2623</p>' +
+        '<p>路程：騎車約5分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNQ2CLAUYs47jTgugXoAEGAU7IGdCYZcxjY95DZ=w800-h600-k-no" ' +
+        'alt="402-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMCInEvsSS1CnTncxnKtHyTqoWc0ITuIH6KyXwd=w800-h600" ' +
+        'alt="402-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOt_T4JaWWUFVdpBr2Q7pP2YIaKgqtwsdehLhu0=w800-h600" ' +
+        'alt="402-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipP9bQ4Er_VDV66CxrTrizix5jGmuRVNDbNW36R6=w800-h600" ' +
+        'alt="402-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：盛夏果實早午餐</h3>' +
+        '<p>地址：花蓮縣壽豐鄉中正路95號</p>' +
+        '<p>營業時間：一－日 10:00－16:00</p>' +
+        '<p>目前營業狀態：<span id="status-403"></span></p>' +
+        '<p>電話：03 866 2014</p>' +
+        '<p>路程：騎車約6分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMfDjWGWdF-LLt7Z3lPFIuaofcKnH6-LUCYjQm5=w800-h600-k-no" ' +
+        'alt="403-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMTdMoVMgz_tZwMlriInYMmr8HJSAkNMijlT9my=w800-h600" ' +
+        'alt="403-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNU7ZBeKH3tvhBgfb1TY-VkDRy9Zsf-tpJ3zZh0=w800-h600-k-no" ' +
+        'alt="403-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOmmUdvlK1mVTAm8bfANuN5nX-9vtld15dFQfgT=w800-h600" ' +
+        'alt="403-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：炙燒老爹</h3>' +
+        '<p>地址：花蓮縣壽豐鄉中山路二段224號</p>' +
+        '<p>營業時間：一－日 17:00－23:30，三公休</p>' +
+        '<p>目前營業狀態：<span id="status-404"></span></p>' +
+        '<p>電話：03 866 3998</p>' +
+        '<p>路程：騎車約6分鐘</p>' +
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM8UUrQjw0xzDH21OQgEKULMp-4PN7stqyxmaaG=w800-h600-k-no" ' +
+        'alt="404-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOtbcjEgdw3t55UOxlHwuVlQDO0dRk8fP7kAfvT=w800-h600-k-no" ' +
+        'alt="404-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNdV3OKU9f1VW2Hxij0bCrjGxNnH2JB05kjdPKQ=w800-h600" ' +
+        'alt="404-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOcUwFyGt2R68MTGv4cEXonyNebSn2gt9vuNmhp=w800-h600-k-no" ' +
+        'alt="404-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：龍城燒臘</h3>' +
+        '<p>地址：花蓮縣壽豐鄉中正路129號</p>' +
+        '<p>營業時間：一－六 10:30－13:30、16:15－18:30，日休息</p>' +
+        '<p>目前營業狀態：<span id="status-405"></span></p>' +
+        '<p>電話：03 866 1519</p>' +
+        '<p>路程：騎車約6分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMElseF95GFDLdIvqNwPNHX2hEFD-hObgtjWx9E=w800-h600-k-no" ' +
+        'alt="405-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMDQdRqBWFY6b4u4ZS7YwNNJ3XnYySsdzOEzNod=w800-h600-k-no" ' +
+        'alt="405-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipOBuaXY6_faJ7ScnaveyRfmGx-6wzxOpuM095C1=w800-h600-k-no" ' +
+        'alt="405-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMr7J4tWWlccAq2PxfTMFoyrI3LCeKrbNXhwIsf=w800-h600-k-no" ' +
+        'alt="405-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('drinkInfo').innerHTML =
+
+        '<p>店名：9803咖啡廳</p>' +
+        '<p>地址：花蓮縣壽豐鄉榮光街22號</p>' +
+        '<p>營業時間：一－日 12:30～18:30、四休息</p>' +
+        '<p>目前營業狀態：<span id="status-406"></span></p>' +
+        '<p>電話：03 866 1985</p>' +
+        '<p>路程：騎車約6分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMD7XNqUUQIqG7-RTIJxnTpvRLJRVlMydxVzrzO=w800-h600-k-no" ' +
+        'alt="406-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMV5eRek77XaS2dIYzqD6lxWp8wMTdYqh88UpRh=w800-h600-k-no" ' +
+        'alt="406-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMToKpbwAO091IREayZLFbZQmELfJ5AVjLVYDMT=w800-h600-k-no" ' +
+        'alt="406-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNVMWA9v6Mr-cqZ23HHezJuNRfgQR6R9EbO6t4j=w800-h600" ' +
+        'alt="406-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：有理咖啡</h3>' +
+        '<p>地址：花蓮縣壽豐鄉中正路237號</p>' +
+        '<p>營業時間：依照ig時間表</p>' +
+        '<p>電話：無</p>' +
+        '<p>路程：騎車約5分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN2IrhHbf1X4FKw_X4gxDjli421C5a4Ac-qUWFW=w800-h600" ' +
+        'alt="408-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipN4SbP14jwjxnDsAYudTvpurhLD-V7uz4Dot6yO=w800-h600-k-no" ' +
+        'alt="408-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPz07lKU3A2LQtr-9fL7txrTiWDcMb4F1tVJf1R=w800-h600-k-no" ' +
+        'alt="408-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPK6FJVuF-mk1cT4GTYDvxNIuLMDKjwjSyNCYMm=w800-h600-k-no" ' +
+        'alt="408-4" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMtuz0-8cPUSXM-rHAMQqA8hUe9uXO5uNIYsHwr=w800-h600-k-no" ' +
+        'alt="408-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>'+
+
+        '<h3>店名：花田小路</h3>' +
+        '<p>地址：花蓮縣壽豐鄉村東富街128號974</p>' +
+        '<p>營業時間：依照ig時間表</p>' +
+        '<p>電話：0911 669 745</p>' +
+        '<p>路程：騎車約12分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMovHWJQY1V5UaSur0boKwlGk5xQ90a4PUJz1w7=w800-h600-k-no" ' +
+        'alt="409-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPWo_bozRKVT-W3E5vXSg0Hx48CpYCeLxtweVGf=w800-h600-k-no" ' +
+        'alt="409-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipM1PDsPRVrxcan-HixaZlqqGP3nVCfJUtFGPro-=w800-h600-k-no" ' +
+        'alt="409-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipO9ekJcGzabf3hIud1irgfc8Hsu3Tww5p8J9W5H=w800-h600-k-no" ' +
+        'alt="409-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+
+      document.getElementById('nightMarketInfo').innerHTML =
+        '<h3>東大門夜市</h3>' +
+        '<p>地址：花蓮縣花蓮市中山路50號</p>' +
+        '<p>營業時間：一－日 18:00－00:00</p>' +
+        '<p>目前營業狀態：<span id="status-407"></span></p>' +
+        '<p>路程：騎車約19分鐘</p>'+
+        '<div class="slick-slider">' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipPLRHSm8e7hHBnpT3USA_723GBWuUgHi05NjUUi=w800-h600-k-no" ' +
+        'alt="407-1" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMhkHMigR9cyABBLHkTJ5ShLuHzfwVcyw4AYLwT=w800-h600-k-no" ' +
+        'alt="407-2" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipMoykzuWXv04ZmU81F08zzZW_gQjTyItjaK9Qwe=w800-h600-k-no" ' +
+        'alt="407-3" class="restaurant-image" loading="lazy"></div>' +
+        '<div><img src="https://lh5.googleusercontent.com/p/AF1QipNL0D3Cf3oSCWDoDRaOtWjRg557P8GJpxbS6Ww8=w800-h600" ' +
+        'alt="407-4" class="restaurant-image" loading="lazy"></div>' +
+        '</div>';
+
+      const universityId = 4; // 替換成實際的大學 ID
+      const placeIds = [401, 402, 403, 404, 405, 406, 407, 408]; // 替換成實際的餐廳 ID 列表
+      updateBusinessStatus(universityId, placeIds);
+
+    } else {
+
+      document.getElementById('schoolName').textContent = "學校名稱未知";
+    }
+  }
+
+  // 滾動到指定區塊
+  function scrollToSection(sectionId) {
+    document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // 回到頂部
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // 回首頁
+  function goHome() {
+    window.location.href = 'index.html';}
+</script>
+
+<footer style="text-align:center; margin-top: 50px;">
+  <p>所有資料皆由組員共同查詢</p>
+  <p>圖片來源為Google Maps使用者上傳或Google商家檔案</p>
+</footer>
+
+<!-- 引入JavaScript -->
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+
+<script>
+  $(document).ready(function(){
+    // 初始化 Slick 輪播
+    $('.slick-slider').slick({
+      dots: true,                 // 顯示底部導航點
+      infinite: true,             // 無限循環
+      speed: 500,                 // 轉換速度
+      slidesToShow: 1,            // 每次顯示 1 張圖片
+      slidesToScroll: 1,          // 每次滑動 1 張圖片
+      autoplay: true,             // 自動播放
+      autoplaySpeed: 2000,        // 每 2 秒換一張圖片
+    });
+  });
+</script>
+
+
+</body>
+</html>

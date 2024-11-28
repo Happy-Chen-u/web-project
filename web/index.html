@@ -1,0 +1,155 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>台灣各地區大學周邊美食</title>
+  <link rel="stylesheet" href="style.css">
+
+
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.png">
+
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#fafafa">
+
+  <style>
+    /* 提示畫面的樣式 */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      text-align: center;
+      width: 300px;
+    }
+
+    .close-btn {
+      margin-top: 6px;
+      background-color: #88B6D4;
+      color: white;
+      border: none;
+      padding: 5px 8px; /* 調整內邊距 (垂直 5px，水平 8px) */
+      font-size: 12px; /* 調整字體大小 */
+      cursor: pointer;
+      border-radius: 4px; /* 調整圓角 */
+    }
+
+
+    .close-btn:hover {
+      background-color: #2f5c79;
+    }
+  </style>
+</head>
+
+<body>
+<div class="header-text">
+  台灣各地區大學周邊美食推薦
+</div>
+<div class="subheader-text">
+  ✨點擊大學名稱可跳轉到該大學的美食推薦頁面✨
+</div>
+
+<div class="container">
+  <div class="map-container">
+    <!-- 移除 <img> 或 background-image 擇一 -->
+    <img src="img/TaiwanMap.svg" alt="台灣地圖" width="550">
+
+    <div class="text-overlay" style="top: 50px; left: 245px;">
+      <a href="javascript:void(0)" onclick="showModal('輔仁大學')"><span>輔仁大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 155px; left: 77px;">
+      <a href="javascript:void(0)" onclick="showModal('國立清華大學')"><span>國立清華大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 177px; left: 61px;">
+      <a href="javascript:void(0)" onclick="showModal('國立陽明交通大學')"><span>國立陽明交通大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 82px; left: 111px;">
+      <a href="javascript:void(0)" onclick="showModal('國立中央大學')"><span>國立中央大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 75px; left: 384px;">
+      <a href="javascript:void(0)" onclick="showModal('國立政治大學')"><span>國立政治大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 96px; left: 400px;">
+      <a href="javascript:void(0)" onclick="showModal('東吳大學(城中校區)')"><span>東吳大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 54px; left: 384px;">
+      <a href="javascript:void(0)" onclick="showModal('國立台灣大學')"><span>國立台灣大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 252px; left: 26px;">
+      <a href="javascript:void(0)" onclick="showModal('國立中興大學')"><span>國立中興大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 273px; left: 42px;">
+      <a href="javascript:void(0)" onclick="showModal('東海大學')"><span>東海大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 634px; left: 61px;">
+      <a href="javascript:void(0)" onclick="showModal('國立中山大學')"><span>國立中山大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 355px; left: 14px;">
+      <a href="javascript:void(0)" onclick="showModal('國立中正大學')"><span>國立中正大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 538px; left: 16px;">
+      <a href="javascript:void(0)" onclick="showModal('國立成功大學')"><span>國立成功大學</span></a>
+    </div>
+    <div class="text-overlay" style="top: 363px; left: 387px;">
+      <a href="javascript:void(0)" onclick="showModal('國立東華大學')"><span>國立東華大學</span></a>
+    </div>
+  </div>
+</div>
+
+<!-- 提示畫面 -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <p id="modal-message"></p>
+    <button class="close-btn" onclick="closeModal()">關閉</button>
+  </div>
+</div>
+
+<script>
+  // 讓提示畫面在頁面加載時顯示
+  window.onload = function() {
+    document.getElementById('modal-message').textContent = "大家好，我們是第五組～我們這組的專題實作是「台灣各大學周邊美食」，接下來一起看看我們發現了哪些美食吧！";
+    document.getElementById('modal').style.display = 'flex';
+  };
+  window.onload = function() {
+    // 檢查提示是否已經顯示過
+    if (!sessionStorage.getItem('modalShown')) {
+      document.getElementById('modal-message').textContent = "大家好，我們是第五組～我們這組的專題實作是「台灣各大學周邊美食」，接下來一起看看我們發現了哪些美食吧！";
+      document.getElementById('modal').style.display = 'flex';
+
+      // 設置標誌表示已顯示過提示
+      sessionStorage.setItem('modalShown', 'true');
+    }
+  };
+
+
+  function showModal(schoolName) {
+    document.getElementById('modal-message').textContent = `${schoolName} 的美食推薦即將展示，請稍候...`;
+    document.getElementById('modal').style.display = 'flex';
+
+    // 延遲跳轉到對應頁面
+    setTimeout(function() {
+      window.location.href = `food.html?school=${encodeURIComponent(schoolName)}`;
+    }, 9000); // 2秒後跳轉
+  }
+
+  function closeModal() {
+    document.getElementById('modal').style.display = 'none';
+  }
+</script>
+
+</body>
+</html>
+
